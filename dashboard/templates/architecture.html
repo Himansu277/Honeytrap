@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture | HoneyTrap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-100">HoneyTrap Architecture</h1>
+                    <p class="text-xs text-slate-400">AWS Infrastructure & Automation Engine</p>
+                </div>
+            </div>
+            <nav class="flex space-x-6 text-sm font-medium">
+                <a href="/" class="text-slate-400 hover:text-slate-200">Overview</a>
+                <a href="/attacks" class="text-slate-400 hover:text-slate-200">Threat Telemetry</a>
+                <a href="/evidence" class="text-slate-400 hover:text-slate-200">Forensic Vault</a>
+                <a href="/architecture" class="text-amber-400 border-b-2 border-amber-400 pb-1">Architecture</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-100">HoneyTrap AWS Cloud Network Topology</h2>
+            <p class="text-sm text-slate-400">Isolated 3-Subnet Architecture with One-Way Forensic Flow</p>
+        </div>
+
+        <!-- 3 Subnet Comparison Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Subnet 1: Public Management -->
+            <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="p-2.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        <i class="fa-solid fa-server text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-200 text-sm">Public Management Subnet</h3>
+                        <p class="text-xs text-slate-500 font-mono">10.0.1.0/24</p>
+                    </div>
+                </div>
+                <ul class="text-xs text-slate-400 space-y-2">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <strong>Bastion Host</strong> (Admin access on Port 2222)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <strong>Nagios Core</strong> (Continuous Health & Attack Polling)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <strong>Puppet Master</strong> (Declarative drift correction)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <strong>Ansible Controller</strong> (Orchestration & recovery)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-400"></i> <strong>Threat Dashboard</strong> (Port 5000)</li>
+                </ul>
+            </div>
+
+            <!-- Subnet 2: Honeypot DMZ -->
+            <div class="p-6 rounded-2xl bg-amber-950/20 border border-amber-500/30">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="p-2.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        <i class="fa-solid fa-spider text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-200 text-sm">Honeypot DMZ Subnet</h3>
+                        <p class="text-xs text-amber-400 font-mono">10.0.2.0/24 (Isolated)</p>
+                    </div>
+                </div>
+                <ul class="text-xs text-slate-400 space-y-2">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-bullseye text-amber-400"></i> <strong>Cowrie SSH Trap</strong> (Lure Port 22 open to internet)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-bullseye text-amber-400"></i> <strong>Fake Web Admin</strong> (Port 8080 bait)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-lock text-red-400"></i> <strong>Strict NACL:</strong> ZERO ingress/egress to Prod Subnet</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-lock text-red-400"></i> <strong>Outbound Filter:</strong> Outbound scanning blocked</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-shield text-emerald-400"></i> <strong>NRPE Agent:</strong> Monitored via Port 5666</li>
+                </ul>
+            </div>
+
+            <!-- Subnet 3: Private Production -->
+            <div class="p-6 rounded-2xl bg-emerald-950/20 border border-emerald-500/30">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-vault text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-200 text-sm">Private Production Subnet</h3>
+                        <p class="text-xs text-emerald-400 font-mono">10.0.3.0/24 (Zero Internet)</p>
+                    </div>
+                </div>
+                <ul class="text-xs text-slate-400 space-y-2">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-shield-halved text-emerald-400"></i> <strong>Internal Enterprise App</strong> (Protected Port 80)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-ban text-red-400"></i> <strong>No Public IP</strong> (Completely unroutable from internet)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-shield-halved text-emerald-400"></i> <strong>Key-only SSH</strong> (Port 2222 from Bastion only)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-shield-halved text-emerald-400"></i> <strong>fail2ban & auditd</strong> active and enforcing</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-arrows-rotate text-emerald-400"></i> <strong>Weekly Auto-Patching</strong> via Ansible</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- DevOps Stack Matrix Table -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-bold text-slate-200 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-cubes text-purple-400"></i>
+                DevOps Tools & Responsibilities Matrix
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="text-slate-400 border-b border-slate-800 font-semibold uppercase">
+                        <tr>
+                            <th class="py-3">Tool</th>
+                            <th class="py-3">Category</th>
+                            <th class="py-3">HoneyTrap Responsibility</th>
+                            <th class="py-3">Key Configuration Artifacts</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono">
+                        <tr>
+                            <td class="py-3 font-bold text-amber-400">AWS</td>
+                            <td class="py-3 text-slate-400">Cloud Provider</td>
+                            <td class="py-3">VPC, Subnets, EC2 (t3.micro), S3 (Evidence), SNS (Alerts), VPC Flow Logs</td>
+                            <td class="py-3 text-slate-400">terraform/*.tf</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 font-bold text-purple-400">Terraform</td>
+                            <td class="py-3 text-slate-400">Infrastructure as Code</td>
+                            <td class="py-3">Automated declarative provisioning and destruction of entire cloud infrastructure</td>
+                            <td class="py-3 text-slate-400">vpc.tf, ec2.tf, nacl.tf, s3_iam.tf</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 font-bold text-orange-400">Puppet</td>
+                            <td class="py-3 text-slate-400">Configuration Management</td>
+                            <td class="py-3">Hardens production nodes, disables root/passwords, installs Cowrie and NRPE agents</td>
+                            <td class="py-3 text-slate-400">puppet/manifests/site.pp, modules/*</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 font-bold text-blue-400">Nagios Core</td>
+                            <td class="py-3 text-slate-400">Continuous Monitoring</td>
+                            <td class="py-3">Active polling of Cowrie logs; transitions to CRITICAL on attack and triggers event handler</td>
+                            <td class="py-3 text-slate-400">services.cfg, check_cowrie_activity.sh</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 font-bold text-red-400">Ansible</td>
+                            <td class="py-3 text-slate-400">Incident Orchestration</td>
+                            <td class="py-3">Gathers memory dumps, uploads logs to S3, takes EBS snapshots, rebuilds clean honeypot</td>
+                            <td class="py-3 text-slate-400">incident_response.yml, rebuild_honeypot.yml</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 font-bold text-emerald-400">Cowrie</td>
+                            <td class="py-3 text-slate-400">SSH Honeypot</td>
+                            <td class="py-3">Emulates Ubuntu SSH server, logs brute-force credentials and shell interaction to JSON</td>
+                            <td class="py-3 text-slate-400">cowrie.cfg, cowrie.json</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

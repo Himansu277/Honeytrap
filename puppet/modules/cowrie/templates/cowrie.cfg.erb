@@ -1,0 +1,22 @@
+# ==============================================================================
+# HoneyTrap - Cowrie Honeypot Configuration Template
+# ==============================================================================
+[honeypot]
+hostname = <%= @fake_hostname %>
+log_path = var/log/cowrie
+download_path = var/lib/cowrie/downloads
+ttylog = true
+ttylog_path = var/lib/cowrie/tty
+
+[ssh]
+enabled = true
+listen_endpoints = tcp:<%= @listen_port %>:interface=0.0.0.0
+version = <%= @fake_version %>
+
+[telnet]
+enabled = false
+
+[output_jsonlog]
+enabled = true
+logfile = var/log/cowrie/cowrie.json
+epoch_timestamp = false

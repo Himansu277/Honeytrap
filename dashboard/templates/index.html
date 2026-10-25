@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoneyTrap | Self-Healing Honeypot Security Trap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+        }
+        .attack-pulse { animation: pulse-glow 1.5s infinite; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-red-400 bg-clip-text text-transparent">
+                        HoneyTrap <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">AWS SecOps</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Self-Healing Honeypot Architecture | LPU Major Project</p>
+                </div>
+            </div>
+            <nav class="flex items-center space-x-6 text-sm font-medium">
+                <a href="/" class="text-amber-400 border-b-2 border-amber-400 pb-1">Overview</a>
+                <a href="/attacks" class="text-slate-400 hover:text-slate-200 transition">Threat Telemetry</a>
+                <a href="/evidence" class="text-slate-400 hover:text-slate-200 transition">Forensic Vault</a>
+                <a href="/architecture" class="text-slate-400 hover:text-slate-200 transition">Architecture</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- System State & Self-Healing Status Banner -->
+        <div id="statusBanner" class="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300">
+            <div class="flex items-start space-x-4">
+                <div id="statusIconContainer" class="p-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-2xl">
+                    <i id="statusIcon" class="fa-solid fa-shield-check"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-3">
+                        <span id="stateBadge" class="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            ARMED & READY
+                        </span>
+                        <span class="text-xs text-slate-400 font-mono" id="lastUpdatedTime">Updated just now</span>
+                    </div>
+                    <h2 id="statusHeadline" class="text-xl font-bold mt-1 text-slate-100">
+                        HoneyTrap is ARMED and monitoring perimeter on Port 22.
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-0.5">
+                        Lure Port: <span class="font-mono text-amber-400">TCP 22</span> | Isolation: <span class="font-mono text-cyan-400">NACL One-Way</span> | Auto-Heal: <span class="text-emerald-400 font-semibold">Active</span>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="triggerSimulatedAttack('brute_force')" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 flex items-center space-x-2 transition shadow-sm">
+                    <i class="fa-solid fa-key text-amber-400"></i>
+                    <span>Simulate SSH Brute Force</span>
+                </button>
+                <button onclick="triggerSimulatedAttack('malware_command')" class="px-3.5 py-2 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-xs font-semibold text-red-200 border border-red-800 flex items-center space-x-2 transition shadow-sm">
+                    <i class="fa-solid fa-terminal text-red-400"></i>
+                    <span>Simulate Terminal Breach</span>
+                </button>
+                <button onclick="triggerSelfHealing()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Trigger Self-Healing</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5-Stage DevOps Pipeline Tracker -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-diagram-project text-amber-400"></i>
+                Autonomous Self-Healing Loop Flow
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 relative">
+                    <div class="w-8 h-8 mx-auto rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm mb-2">1</div>
+                    <h4 class="text-xs font-bold text-slate-200 uppercase">Trap Attacker</h4>
+                    <p class="text-[11px] text-slate-400 mt-1">Cowrie lures scanner to fake shell on port 22</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 relative">
+                    <div class="w-8 h-8 mx-auto rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm mb-2">2</div>
+                    <h4 class="text-xs font-bold text-slate-200 uppercase">Nagios Detect</h4>
+                    <p class="text-[11px] text-slate-400 mt-1">check_cowrie_activity checks log; triggers CRITICAL</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 relative">
+                    <div class="w-8 h-8 mx-auto rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm mb-2">3</div>
+                    <h4 class="text-xs font-bold text-slate-200 uppercase">SNS Broadcast</h4>
+                    <p class="text-[11px] text-slate-400 mt-1">Event handler alerts email/Slack & starts Ansible</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 relative">
+                    <div class="w-8 h-8 mx-auto rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm mb-2">4</div>
+                    <h4 class="text-xs font-bold text-slate-200 uppercase">Forensic Vault</h4>
+                    <p class="text-[11px] text-slate-400 mt-1">Ansible bundles logs to S3 & triggers EBS snapshot</p>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 relative">
+                    <div class="w-8 h-8 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm mb-2">5</div>
+                    <h4 class="text-xs font-bold text-slate-200 uppercase">Rebuild Clean</h4>
+                    <p class="text-[11px] text-slate-400 mt-1">Ansible & Puppet re-arm pure trap in minutes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-medium text-slate-400">Total Intercepted Events</p>
+                        <h4 id="statTotalEvents" class="text-3xl font-extrabold text-slate-100 mt-1">0</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <i class="fa-solid fa-radar text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1">
+                    <span class="text-amber-400 font-semibold">100% Isolated</span> from production
+                </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-medium text-slate-400">Unique Attacker IPs</p>
+                        <h4 id="statUniqueIPs" class="text-3xl font-extrabold text-slate-100 mt-1">0</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <i class="fa-solid fa-globe text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3">Geolocated & logged to S3</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-medium text-slate-400">Credentials Trapped</p>
+                        <h4 id="statLogins" class="text-3xl font-extrabold text-slate-100 mt-1">0</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20">
+                        <i class="fa-solid fa-lock-open text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3" id="statLoginRatio">0 Failed / 0 Succeeded</p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-medium text-slate-400">Commands Captured</p>
+                        <h4 id="statCommands" class="text-3xl font-extrabold text-slate-100 mt-1">0</h4>
+                    </div>
+                    <div class="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-terminal text-xl"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3">Recorded in honeypot TTY</p>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chart 1: Top Attack Origin Countries -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-flag text-blue-400"></i>
+                        Top Threat Origin Geographic Locations
+                    </h3>
+                </div>
+                <div class="h-64">
+                    <canvas id="countryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Top Passwords Tried -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-key text-amber-400"></i>
+                        Top Brute-Forced Passwords Intercepted
+                    </h3>
+                </div>
+                <div class="h-64">
+                    <canvas id="passwordChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Intrusion Feed & Command Stream -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Live Attacks Table (2 cols) -->
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-satellite-dish text-red-400"></i>
+                        Real-Time Intrusion Activity Feed
+                    </h3>
+                    <span class="text-xs text-slate-400 font-mono">Auto-refreshed every 3s</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="text-slate-500 border-b border-slate-800 uppercase tracking-wider font-semibold">
+                            <tr>
+                                <th class="pb-3">Timestamp</th>
+                                <th class="pb-3">Attacker IP</th>
+                                <th class="pb-3">Country</th>
+                                <th class="pb-3">Event Type</th>
+                                <th class="pb-3">Target Payload</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attackFeedBody" class="divide-y divide-slate-800/60 font-mono">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Terminal Commands Spy Window (1 col) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-terminal text-emerald-400"></i>
+                        Attacker Terminal Commands
+                    </h3>
+                </div>
+                <div class="flex-1 bg-slate-950 rounded-xl p-4 border border-slate-800 font-mono text-xs overflow-y-auto max-h-[380px] space-y-2" id="terminalCommandsFeed">
+                    <p class="text-slate-600 italic">Listening for terminal activity...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        HoneyTrap Security Architecture &copy; 2026-2027 Lovely Professional University | Department of Computer Science & Engineering
+    </footer>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

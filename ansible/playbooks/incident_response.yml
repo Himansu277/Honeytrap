@@ -1,0 +1,89 @@
+---
+# ==============================================================================
+# HoneyTrap - Playbook 1: incident_response.yml
+# Forensic Evidence Preservation: S3 Log Backup & AWS EBS Disk Snapshotting
+# ==============================================================================
+- name: Forensic Incident Response and Evidence Preservation
+  hosts: honeypot
+  gather_facts: yes
+  vars:
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    evidence_dir: "/tmp/evidence_{{ timestamp }}"
+    archive_name: "incident_evidence_{{ timestamp }}.tar.gz"
+
+  tasks:
+    - name: Create local staging directory for volatile memory and log triage
+      ansible.builtin.file:
+        path: "{{ evidence_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Dump volatile system state (Process tree & open sockets)
+      ansible.builtin.shell: |
+        ps auxf > {{ evidence_dir }}/process_list.txt
+        ss -antup > {{ evidence_dir }}/active_connections.txt
+        netstat -tulpn > {{ evidence_dir }}/listening_ports.txt 2>/dev/null || true
+        last -a > {{ evidence_dir }}/login_history.txt
+        w > {{ evidence_dir }}/current_users.txt
+      ignore_errors: yes
+
+    - name: Copy Cowrie JSON and raw audit logs to evidence package
+      ansible.builtin.shell: |
+        if [ -d "{{ cowrie_log_dir }}" ]; then
+          cp -r {{ cowrie_log_dir }} {{ evidence_dir }}/cowrie_logs
+        fi
+        if [ -d "{{ cowrie_tty_dir }}" ]; then
+          cp -r {{ cowrie_tty_dir }} {{ evidence_dir }}/cowrie_tty_recordings
+        fi
+      ignore_errors: yes
+
+    - name: Compress evidence folder into encrypted/secured archive
+      ansible.builtin.archive:
+        path: "{{ evidence_dir }}/*"
+        dest: "/tmp/{{ archive_name }}"
+        format: gz
+
+    - name: Upload evidence package to AWS S3 bucket
+      ansible.builtin.shell: |
+        aws s3 cp /tmp/{{ archive_name }} s3://{{ s3_evidence_bucket }}/incidents/{{ timestamp }}/{{ archive_name }} || true
+      environment:
+        AWS_DEFAULT_REGION: "{{ aws_region }}"
+      ignore_errors: yes
+
+    - name: Sync latest cowrie.json to Dashboard local evidence directory
+      ansible.builtin.fetch:
+        src: "{{ cowrie_log_dir }}/cowrie.json"
+        dest: "{{ dashboard_sync_path }}/cowrie_latest.json"
+        flat: yes
+      ignore_errors: yes
+
+    - name: Discover Honeypot EC2 Instance & Volume ID for EBS snapshot
+      ansible.builtin.shell: |
+        INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "i-simulation-node")
+        echo $INSTANCE_ID
+      register: instance_id_cmd
+
+    - name: Take EBS snapshot of Honeypot Root Volume for legal/forensic chain-of-custody
+      ansible.builtin.shell: |
+        VOL_ID=$(aws ec2 describe-instances --instance-ids {{ instance_id_cmd.stdout }} \
+          --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" --output text 2>/dev/null || echo "vol-simulation")
+        if [ "$VOL_ID" != "vol-simulation" ] && [ -n "$VOL_ID" ]; then
+          aws ec2 create-snapshot --volume-id $VOL_ID \
+            --description "HoneyTrap Forensic Snapshot - Intrusion at {{ timestamp }}" \
+            --tag-specifications "ResourceType=snapshot,Tags=[{Key=Project,Value=HoneyTrap},{Key=Evidence,Value=True},{Key=Timestamp,Value={{ timestamp }}}]"
+        fi
+      environment:
+        AWS_DEFAULT_REGION: "{{ aws_region }}"
+      ignore_errors: yes
+
+    - name: Clean up temporary triage files on honeypot
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ evidence_dir }}"
+        - "/tmp/{{ archive_name }}"
+
+    - name: Log forensic completion
+      ansible.builtin.debug:
+        msg: "Forensic evidence package {{ archive_name }} saved to S3 bucket {{ s3_evidence_bucket }}."

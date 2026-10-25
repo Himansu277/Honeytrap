@@ -1,0 +1,61 @@
+---
+# ==============================================================================
+# HoneyTrap - Playbook 2: rebuild_honeypot.yml
+# Self-Healing Automation: Reset Compromised Trap & Re-arm Clean Defense
+# ==============================================================================
+- name: Honeypot Rebuild and Self-Healing Cycle
+  hosts: honeypot
+  gather_facts: no
+  tasks:
+    - name: Terminate compromised honeypot session & Cowrie service
+      ansible.builtin.systemd:
+        name: cowrie
+        state: stopped
+      ignore_errors: yes
+
+    - name: Terminate any lingering attacker processes / child shells
+      ansible.builtin.shell: |
+        pkill -u cowrie || true
+      ignore_errors: yes
+
+    - name: Archive and purge contaminated workspace
+      ansible.builtin.shell: |
+        mv /home/cowrie/cowrie/var/log/cowrie/cowrie.json /home/cowrie/cowrie/var/log/cowrie/cowrie_archived_$(date +%s).json 2>/dev/null || true
+        rm -rf /home/cowrie/cowrie/var/lib/cowrie/downloads/* 2>/dev/null || true
+        touch /home/cowrie/cowrie/var/log/cowrie/cowrie.json
+        chown -R cowrie:cowrie /home/cowrie/cowrie/var
+      ignore_errors: yes
+
+    - name: Run Puppet agent to enforce declarative baseline state & fix configuration drift
+      ansible.builtin.shell: |
+        if command -v puppet >/dev/null 2>&1; then
+          puppet apply /opt/honeytrap/puppet/manifests/site.pp || true
+        fi
+      ignore_errors: yes
+
+    - name: Reset Nagios intrusion detection pointer
+      ansible.builtin.file:
+        path: /tmp/nagios_cowrie_pointer.dat
+        state: absent
+
+    - name: Restart Cowrie Service in pristine state
+      ansible.builtin.systemd:
+        name: cowrie
+        state: restarted
+        enabled: yes
+
+    - name: Verify Honeypot Port Redirection (Port 22 -> 2223)
+      ansible.builtin.shell: |
+        iptables -t nat -C PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2223 2>/dev/null || \
+        iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2223
+      ignore_errors: yes
+
+    - name: Confirm Cowrie is active and listening
+      ansible.builtin.wait_for:
+        port: 2223
+        delay: 2
+        timeout: 20
+
+    - name: Self-Healing validation status
+      ansible.builtin.debug:
+        msg: "SELF-HEALING COMPLETE: Honeypot has been purged, re-armed, and is actively trapping new threats on port 22."

@@ -1,0 +1,27 @@
+# ==============================================================================
+# HoneyTrap - NRPE Agent Configuration Template
+# ==============================================================================
+pid_file=/run/nagios/nrpe.pid
+server_port=5666
+nrpe_user=nagios
+nrpe_group=nagios
+allowed_hosts=<%= @allowed_hosts %>
+dont_blame_nrpe=0
+allow_bash_command_substitution=0
+debug=0
+command_timeout=60
+connection_timeout=300
+
+# Base monitoring commands
+command[check_users]=/usr/lib/nagios/plugins/check_users -w 5 -c 10
+command[check_load]=/usr/lib/nagios/plugins/check_load -r -w .15,.10,.05 -c .30,.25,.20
+command[check_disk]=/usr/lib/nagios/plugins/check_disk -w 20% -c 10% -p /
+
+<% if @is_honeypot -%>
+# Custom Cowrie Honeypot Intrusion Detection Plugin
+command[check_cowrie]=/usr/lib/nagios/plugins/check_cowrie_activity.sh
+command[check_cowrie_proc]=/usr/lib/nagios/plugins/check_procs -c 1:10 -C cowrie
+<% else -%>
+# Production service check
+command[check_nginx]=/usr/lib/nagios/plugins/check_http -I 127.0.0.1 -p 80
+<% end -%>

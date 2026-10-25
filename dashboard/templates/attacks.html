@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Telemetry | HoneyTrap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-100">HoneyTrap Threat Telemetry</h1>
+                    <p class="text-xs text-slate-400">Deep Packet & Session Forensics</p>
+                </div>
+            </div>
+            <nav class="flex space-x-6 text-sm font-medium">
+                <a href="/" class="text-slate-400 hover:text-slate-200">Overview</a>
+                <a href="/attacks" class="text-amber-400 border-b-2 border-amber-400 pb-1">Threat Telemetry</a>
+                <a href="/evidence" class="text-slate-400 hover:text-slate-200">Forensic Vault</a>
+                <a href="/architecture" class="text-slate-400 hover:text-slate-200">Architecture</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-100">Intrusion Sessions & Raw Activity Logs</h2>
+                <p class="text-sm text-slate-400">Captured in isolated Honeypot DMZ (Subnet 10.0.2.0/24)</p>
+            </div>
+            <a href="/api/attacks" target="_blank" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-amber-400 font-mono border border-slate-700">
+                <i class="fa-solid fa-code mr-1"></i> View Raw JSON API
+            </a>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-mono">
+                    <thead class="text-slate-400 border-b border-slate-800 uppercase">
+                        <tr>
+                            <th class="py-3">Timestamp (UTC)</th>
+                            <th class="py-3">Attacker IP</th>
+                            <th class="py-3">Geographic Origin</th>
+                            <th class="py-3">Event Action</th>
+                            <th class="py-3">Session ID</th>
+                            <th class="py-3">Decoded Attacker Payload</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fullAttacksList" class="divide-y divide-slate-800/60">
+                        <tr><td colspan="6" class="py-6 text-center text-slate-500">Loading forensic records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadTelemetry() {
+            try {
+                const res = await fetch("/api/attacks");
+                const attacks = await res.json();
+                const tbody = document.getElementById("fullAttacksList");
+                tbody.innerHTML = "";
+
+                attacks.forEach(att => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-800/40 transition";
+                    
+                    let badge = "";
+                    let payload = "";
+
+                    if (att.eventid === "cowrie.login.failed") {
+                        badge = `<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400">BRUTE_FORCE_FAIL</span>`;
+                        payload = `User: <strong>${att.username}</strong> | Pass: <span class="text-amber-400 font-bold">${att.password}</span>`;
+                    } else if (att.eventid === "cowrie.login.success") {
+                        badge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">TRAP_AUTH_SUCCESS</span>`;
+                        payload = `Gave fake TTY shell for user: <strong>${att.username}</strong>`;
+                    } else if (att.eventid === "cowrie.command.input") {
+                        badge = `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">COMMAND_EXEC</span>`;
+                        payload = `<span class="text-emerald-300">$ ${att.input}</span>`;
+                    } else {
+                        badge = `<span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300">SESSION_START</span>`;
+                        payload = `Port: ${att.dst_port || 22}`;
+                    }
+
+                    tr.innerHTML = `
+                        <td class="py-3 text-slate-400">${att.timestamp || ""}</td>
+                        <td class="py-3 text-cyan-400 font-bold">${att.src_ip || ""}</td>
+                        <td class="py-3 text-slate-300">${att.country || "Proxy"}</td>
+                        <td class="py-3">${badge}</td>
+                        <td class="py-3 text-slate-500">${att.session || ""}</td>
+                        <td class="py-3 truncate max-w-md">${payload}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        document.addEventListener("DOMContentLoaded", loadTelemetry);
+    </script>
+</body>
+</html>

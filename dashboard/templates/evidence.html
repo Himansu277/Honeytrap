@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Evidence Vault | HoneyTrap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <i class="fa-solid fa-box-archive text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-100">Forensic Evidence Vault</h1>
+                    <p class="text-xs text-slate-400">AWS S3 Immutable Chain-of-Custody Store</p>
+                </div>
+            </div>
+            <nav class="flex space-x-6 text-sm font-medium">
+                <a href="/" class="text-slate-400 hover:text-slate-200">Overview</a>
+                <a href="/attacks" class="text-slate-400 hover:text-slate-200">Threat Telemetry</a>
+                <a href="/evidence" class="text-cyan-400 border-b-2 border-cyan-400 pb-1">Forensic Vault</a>
+                <a href="/architecture" class="text-slate-400 hover:text-slate-200">Architecture</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <div class="p-6 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-slate-100">Forensic Evidence & EBS Disk Snapshots</h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    When an attacker strikes, Ansible extracts memory, volatile sockets, TTY keystrokes, and raw Cowrie logs, ships them to AWS S3, and captures an Amazon EBS disk snapshot.
+                </p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs text-slate-400">Target S3 Storage Bucket:</span>
+                <p class="font-mono text-cyan-400 font-bold text-sm">s3://honeytrap-evidence-store</p>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-bold text-sm text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-database text-cyan-400"></i>
+                Archived Forensic Packages
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-mono">
+                    <thead class="text-slate-400 border-b border-slate-800 uppercase">
+                        <tr>
+                            <th class="py-3">Archive ID</th>
+                            <th class="py-3">Timestamp</th>
+                            <th class="py-3">AWS S3 Object URI</th>
+                            <th class="py-3">EBS Snapshot ID</th>
+                            <th class="py-3">Status</th>
+                            <th class="py-3">Integrity Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody id="evidenceList" class="divide-y divide-slate-800/60">
+                        <tr><td colspan="6" class="py-6 text-center text-slate-500">Checking vault...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadEvidence() {
+            try {
+                const res = await fetch("/api/evidence");
+                const records = await res.json();
+                const tbody = document.getElementById("evidenceList");
+                tbody.innerHTML = "";
+
+                if (records.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No forensic snapshots created yet. Trigger a simulated attack or self-healing run to generate one!</td></tr>`;
+                    return;
+                }
+
+                records.forEach(ev => {
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-800/40 transition";
+                    tr.innerHTML = `
+                        <td class="py-3 text-cyan-400 font-bold">${ev.archive_id}</td>
+                        <td class="py-3 text-slate-400">${ev.timestamp}</td>
+                        <td class="py-3 text-amber-300 break-all">${ev.s3_path}</td>
+                        <td class="py-3 text-purple-400 font-bold">${ev.ebs_snapshot_id}</td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">${ev.status}</span></td>
+                        <td class="py-3 text-slate-500 truncate max-w-xs">${ev.hash_sha256}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        document.addEventListener("DOMContentLoaded", loadEvidence);
+    </script>
+</body>
+</html>

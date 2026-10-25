@@ -1,0 +1,8 @@
+{
+  "state": "ACTIVE",
+  "status_text": "Honeypot healed & re-armed! Evidence archived to S3 (incident_evidence_2026-10-25_151649.tar.gz)",
+  "last_healing_event": "2026-10-25 15:16:49 UTC",
+  "honeypot_ip": "10.0.2.10 (Public Trap)",
+  "active_phase": "ARMED_AND_OPERATIONAL",
+  "healing_in_progress": false
+}

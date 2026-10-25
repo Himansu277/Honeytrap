@@ -1,0 +1,11 @@
+# ==============================================================================
+# HoneyTrap - Ansible Global Variables (all.yml)
+# ==============================================================================
+
+aws_region: "us-east-1"
+s3_evidence_bucket: "honeytrap-evidence-store"
+sns_alert_topic: "arn:aws:sns:us-east-1:123456789012:honeytrap-attack-alerts"
+cowrie_log_dir: "/home/cowrie/cowrie/var/log/cowrie"
+cowrie_tty_dir: "/home/cowrie/cowrie/var/lib/cowrie/tty"
+evidence_local_staging: "/tmp/honeytrap_evidence"
+dashboard_sync_path: "/opt/honeytrap/evidence"
