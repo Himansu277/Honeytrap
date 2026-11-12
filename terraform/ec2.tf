@@ -34,7 +34,7 @@ resource "aws_instance" "management_node" {
   user_data = file("${path.module}/user_data/bastion_init.sh")
 
   root_block_device {
-    volume_size           = 20
+    volume_size           = 10
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true
@@ -59,7 +59,7 @@ resource "aws_instance" "honeypot_node" {
   user_data = file("${path.module}/user_data/honeypot_init.sh")
 
   root_block_device {
-    volume_size           = 15
+    volume_size           = 10
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true
@@ -87,7 +87,7 @@ resource "aws_instance" "production_node" {
   user_data = file("${path.module}/user_data/prod_init.sh")
 
   root_block_device {
-    volume_size           = 15
+    volume_size           = 10
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true

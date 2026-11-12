@@ -1,0 +1,41 @@
+# ==============================================================================
+# HoneyTrap .gitignore - Security & Clean Repository Policy
+# ==============================================================================
+
+# 1. AWS Credentials & Private Keys (NEVER commit secrets!)
+*.pem
+*.key
+*.id_rsa
+*.id_ed25519
+credentials
+aws_credentials.json
+
+# 2. Terraform State & Cache Files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!terraform.tfvars.example
+
+# 3. Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+venv/
+env/
+
+# 4. OS & IDE junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# 5. Local simulation temporary files
+nagios_cowrie_pointer.dat
+*.swp
+*.bak
