@@ -372,7 +372,7 @@ All endpoints are live and return standard JSON:
 ### Infrastructure Automation & Validation
 The project includes fully implemented, structured, and validated configurations for all four DevOps/DevSecOps tools:
 - **Nagios (`nagios/` & `scripts/nagios_monitor.py`):** Active health checks for Dashboard (`check_dashboard.py`), Honeypot (`check_honeypot.py`), and Cowrie intrusion logs (`check_cowrie_activity.sh`) with automated incident response via `handle_honeypot_attack.sh`.
-- **Terraform (`terraform/`):** Enterprise AWS architecture featuring custom VPC, 3 isolated subnets, NACLs, S3 forensic evidence vault, EC2 security groups, and IAM roles. Fully initialized with HashiCorp AWS & Random providers and verified via `terraform validate`.
+- **Terraform (`terraform/`):** Low-cost, Free-Tier-optimized AWS architecture featuring a dedicated VPC, public honeypot subnet, S3 forensic evidence vault, single-server EC2 deployment, and strict security groups isolating decoy bait (port 22) from administrative access (ports 2222, 5000, 80). Fully initialized with HashiCorp AWS & Random providers and verified via `terraform validate`.
 - **Ansible (`ansible/`):** Complete playbooks for incident response (`incident_response.yml`), honeypot purging & rebuilding (`rebuild_honeypot.yml`), and production patching (`patch_prod.yml`). Validated via `tests/test_ansible_playbooks.py`.
 - **Puppet (`puppet/`):** Declarative state manifests (`site.pp`), Cowrie configuration templates, SSH baseline hardening, `fail2ban`, and NRPE agent enforcement. Validated via `tests/test_puppet_manifests.py`.
 

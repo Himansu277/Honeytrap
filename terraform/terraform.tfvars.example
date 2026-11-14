@@ -1,12 +1,12 @@
 # ==============================================================================
-# HoneyTrap - Example Configuration Variables
-# Rename this file to terraform.tfvars and fill in your values
+# HoneyTrap - Example Configuration Variables (Single-Server Deployment)
+# Copy this file to terraform.tfvars and customize with your parameters:
+# cp terraform.tfvars.example terraform.tfvars
 # ==============================================================================
 
 aws_region     = "ap-south-1"
-environment    = "production"
+environment    = "demo"
 instance_type  = "t3.micro"
 key_name       = "your-aws-ssh-key-name"
-admin_ip       = "YOUR_PUBLIC_IP/32" # Replace with: curl https://checkip.amazonaws.com
+admin_ip       = "YOUR_PUBLIC_IP/32" # Required: Find with 'curl https://checkip.amazonaws.com'
 admin_ssh_port = 2222
-alert_email    = "your-email@example.com"

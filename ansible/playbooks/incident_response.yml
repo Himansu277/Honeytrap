@@ -57,24 +57,9 @@
         flat: yes
       ignore_errors: yes
 
-    - name: Discover Honeypot EC2 Instance & Volume ID for EBS snapshot
-      ansible.builtin.shell: |
-        INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "i-simulation-node")
-        echo $INSTANCE_ID
-      register: instance_id_cmd
-
-    - name: Take EBS snapshot of Honeypot Root Volume for legal/forensic chain-of-custody
-      ansible.builtin.shell: |
-        VOL_ID=$(aws ec2 describe-instances --instance-ids {{ instance_id_cmd.stdout }} \
-          --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" --output text 2>/dev/null || echo "vol-simulation")
-        if [ "$VOL_ID" != "vol-simulation" ] && [ -n "$VOL_ID" ]; then
-          aws ec2 create-snapshot --volume-id $VOL_ID \
-            --description "HoneyTrap Forensic Snapshot - Intrusion at {{ timestamp }}" \
-            --tag-specifications "ResourceType=snapshot,Tags=[{Key=Project,Value=HoneyTrap},{Key=Evidence,Value=True},{Key=Timestamp,Value={{ timestamp }}}]"
-        fi
-      environment:
-        AWS_DEFAULT_REGION: "{{ aws_region }}"
-      ignore_errors: yes
+    - name: Note on disk state (Paid EBS snapshot creation disabled to prevent AWS recurring charges)
+      ansible.builtin.debug:
+        msg: "EBS automated snapshot creation is disabled (enable_ebs_snapshots: false) to prevent recurring AWS storage charges. Evidence preserved locally and in S3."
 
     - name: Clean up temporary triage files on honeypot
       ansible.builtin.file:
