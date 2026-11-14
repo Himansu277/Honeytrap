@@ -41,9 +41,9 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "dashboard", "data")
 LOG_FILE = os.path.join(DATA_DIR, "cowrie.json")
 HOST_KEY_FILE = os.path.join(SCRIPT_DIR, "honeypot_host_key")
 
-# Honeypot network settings
-BIND_HOST = "127.0.0.1"
-BIND_PORT = 2222
+# Honeypot network settings (Defaults to 127.0.0.1:2222 for local testing; configurable via ENV for Linux/AWS)
+BIND_HOST = os.environ.get("HONEYPOT_BIND_HOST", "127.0.0.1")
+BIND_PORT = int(os.environ.get("HONEYPOT_BIND_PORT", 2222))
 SSH_BANNER = "SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.5"
 
 # Thread-safe lock for log writing

@@ -1,0 +1,11 @@
+{
+  "archive_id": "incident_evidence_2026-11-14_174545.tar.gz",
+  "file_size_kb": "1.07 KB",
+  "s3_path": "s3://honeytrap-evidence-store/incidents/2026-11-14_174545/incident_evidence_2026-11-14_174545.tar.gz",
+  "storage_status": "SECURED_LOCALLY",
+  "download_url": "/api/evidence/download/incident_evidence_2026-11-14_174545.tar.gz",
+  "ebs_snapshot_id": "DISK_STATE_FROZEN",
+  "timestamp": "2026-11-14 17:45:46 UTC",
+  "status": "EVIDENCE_VERIFIED",
+  "hash_sha256": "7c0305d481a91f6180b95578b33b271c228af9a3b2fbf9b3978b012f71a3a8a8"
+}

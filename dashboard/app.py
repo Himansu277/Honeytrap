@@ -30,8 +30,8 @@ ALERT_FILE = os.path.join(DATA_DIR, "alerts.json")
 SYSTEM_COWRIE_LOG = "/home/cowrie/cowrie/var/log/cowrie/cowrie.json"
 
 HONEYPOT_SCRIPT = os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")
-HONEYPOT_HOST = "127.0.0.1"
-HONEYPOT_PORT = 2222
+HONEYPOT_HOST = os.environ.get("HONEYPOT_HOST", "127.0.0.1")
+HONEYPOT_PORT = int(os.environ.get("HONEYPOT_PORT", 2222))
 
 BRUTE_FORCE_WINDOW = 300    # 5 minutes
 BRUTE_FORCE_THRESHOLD = 3   # minimum failed attempts to trigger alert

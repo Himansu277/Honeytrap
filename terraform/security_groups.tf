@@ -19,14 +19,6 @@ resource "aws_security_group" "honeytrap_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Honeypot Bait: Fake Web Login Port 8080"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # ----------------------------------------------------------------------------
   # 2. RESTRICTED ADMINISTRATIVE ACCESS (Strictly Limited to Admin IP)
   # Never exposed to 0.0.0.0/0!
