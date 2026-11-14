@@ -1,8 +1,0 @@
-{
-  "archive_id": "incident_evidence_2026-10-25_163149.tar.gz",
-  "s3_path": "s3://honeytrap-evidence-store/incidents/2026-10-25_163149/incident_evidence_2026-10-25_163149.tar.gz",
-  "ebs_snapshot_id": "snap-0a1792945909beef",
-  "timestamp": "2026-10-25 16:31:49 UTC",
-  "status": "SECURED_TO_S3",
-  "hash_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-}

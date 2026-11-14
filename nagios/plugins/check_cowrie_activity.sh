@@ -5,7 +5,7 @@
 # ==============================================================================
 
 COWRIE_LOG="${1:-/home/cowrie/cowrie/var/log/cowrie/cowrie.json}"
-STATE_FILE="/tmp/nagios_cowrie_pointer.dat"
+STATE_FILE="${STATE_FILE:-${TMPDIR:-${TMP:-/tmp}}/nagios_cowrie_pointer.dat}"
 
 # Check if log file exists
 if [ ! -f "$COWRIE_LOG" ]; then

@@ -1,0 +1,42 @@
+########################################
+# NAGIOS STATUS FILE - HoneyTrap Core
+# Generated: 2026-11-14 17:21:37 UTC
+########################################
+
+info {
+    created=1794676897
+    version=4.4.6
+}
+
+servicestatus {
+    host_name=localhost
+    service_description=HoneyTrap_Dashboard_Health
+    current_state=0
+    plugin_output=OK - HoneyTrap Dashboard online (State: ACTIVE, Response: 11.76ms) - Honeypot successfully self-healed and re-armed. System clean and awaiting threats. | time=11.76ms;2000;4000;0;
+    last_check=1794676897
+    has_been_checked=1
+    check_type=0
+    is_flapping=0
+}
+
+servicestatus {
+    host_name=localhost
+    service_description=HoneyTrap_Honeypot_Health
+    current_state=0
+    plugin_output=OK - HoneyTrap SSH Honeypot listening on 127.0.0.1:2222 (SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.5) | time=0.0ms;1500;3000;0;
+    last_check=1794676897
+    has_been_checked=1
+    check_type=0
+    is_flapping=0
+}
+
+servicestatus {
+    host_name=localhost
+    service_description=HoneyTrap_Intrusion_Activity
+    current_state=0
+    plugin_output=OK: 3 non-attack events logged (Total: 3)
+    last_check=1794676897
+    has_been_checked=1
+    check_type=0
+    is_flapping=0
+}

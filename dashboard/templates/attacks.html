@@ -78,7 +78,7 @@
 
                     if (att.eventid === "cowrie.login.failed") {
                         badge = `<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400">BRUTE_FORCE_FAIL</span>`;
-                        payload = `User: <strong>${att.username}</strong> | Pass: <span class="text-amber-400 font-bold">${att.password}</span>`;
+                        payload = `User: <strong>${att.username || ""}</strong>` + (att.password ? ` | Pass: <span class="text-amber-400 font-bold">${att.password}</span>` : ` | <span class="text-slate-500">[PASSWORD REDACTED]</span>`);
                     } else if (att.eventid === "cowrie.login.success") {
                         badge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">TRAP_AUTH_SUCCESS</span>`;
                         payload = `Gave fake TTY shell for user: <strong>${att.username}</strong>`;

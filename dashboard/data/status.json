@@ -1,8 +1,9 @@
 {
-  "state": "UNDER_ATTACK",
-  "status_text": "Active intrusion detected from 198.51.100.42 (United States)! Nagios alert firing...",
-  "last_healing_event": "2026-11-12 15:01:57 UTC",
-  "honeypot_ip": "10.0.2.10 (Public Trap)",
-  "active_phase": "NAGIOS_ALERT_TRIGGERED",
-  "healing_in_progress": true
+  "state": "ACTIVE",
+  "recovery_status": "HEALED",
+  "status_text": "Honeypot successfully healed & re-armed! Genuine evidence archived (1.32 KB, SHA-256: e5572e4e0123...). Port 2222 verified active.",
+  "last_healing_event": "2026-11-14 17:21:36 UTC",
+  "honeypot_ip": "127.0.0.1:2222 (Local Trap)",
+  "active_phase": "ARMED_AND_OPERATIONAL",
+  "healing_in_progress": false
 }

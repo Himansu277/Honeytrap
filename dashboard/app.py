@@ -5,46 +5,111 @@
 # ==============================================================================
 
 import os
+import sys
 import json
 import glob
 import time
+import socket
+import subprocess
 import tarfile
 import hashlib
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 from flask import Flask, render_template, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 DATA_DIR = os.path.join(BASE_DIR, "data")
 EVIDENCE_DIR = os.path.join(BASE_DIR, "evidence")
 STATUS_FILE = os.path.join(DATA_DIR, "status.json")
 LOCAL_LOG = os.path.join(DATA_DIR, "cowrie.json")
+ALERT_FILE = os.path.join(DATA_DIR, "alerts.json")
 SYSTEM_COWRIE_LOG = "/home/cowrie/cowrie/var/log/cowrie/cowrie.json"
+
+HONEYPOT_SCRIPT = os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")
+HONEYPOT_HOST = "127.0.0.1"
+HONEYPOT_PORT = 2222
+
+BRUTE_FORCE_WINDOW = 300    # 5 minutes
+BRUTE_FORCE_THRESHOLD = 3   # minimum failed attempts to trigger alert
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
+def is_honeypot_alive(host=HONEYPOT_HOST, port=HONEYPOT_PORT, timeout=1.0):
+    """Checks whether 127.0.0.1:2222 is accepting TCP connections."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    try:
+        s.connect((host, port))
+        s.close()
+        return True
+    except Exception:
+        return False
+
+def start_honeypot_service():
+    """Starts scripts/honeypot_service.py if port 2222 is down.
+    Waits up to 5 seconds for the port to become available.
+    Returns True if honeypot is running and verified listening."""
+    if is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT):
+        return True  # already running, prevent duplicate processes
+
+    if not os.path.exists(HONEYPOT_SCRIPT):
+        print(f"[!] Honeypot script not found at: {HONEYPOT_SCRIPT}")
+        return False
+
+    try:
+        subprocess.Popen(
+            [sys.executable, HONEYPOT_SCRIPT],
+            cwd=PROJECT_ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print(f"[!] Subprocess launch failed: {e}")
+        return False
+
+    # Wait up to 5 seconds for the port to become available
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        time.sleep(0.5)
+        if is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT):
+            return True
+
+    return False
+
 # Default initial healing status
 DEFAULT_STATUS = {
     "state": "ACTIVE",
-    "status_text": "HoneyTrap is ARMED and monitoring perimeter on Port 22.",
+    "status_text": f"HoneyTrap is ARMED and monitoring perimeter on Port {HONEYPOT_PORT}.",
     "last_healing_event": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-    "honeypot_ip": "10.0.2.10 (Public Trap)",
+    "honeypot_ip": f"{HONEYPOT_HOST}:{HONEYPOT_PORT} (Local Trap)",
     "active_phase": "ARMED_AND_OPERATIONAL",
     "healing_in_progress": False
 }
 
 def get_system_status():
+    status = DEFAULT_STATUS.copy()
     if os.path.exists(STATUS_FILE):
         try:
             with open(STATUS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                status = json.load(f)
         except Exception:
-            return DEFAULT_STATUS
-    return DEFAULT_STATUS
+            status = DEFAULT_STATUS.copy()
+
+    # Dynamic real-time socket health verification
+    port_alive = is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT)
+    status["honeypot_alive"] = port_alive
+    status["honeypot_port"] = HONEYPOT_PORT
+    if not port_alive and status.get("state") == "ACTIVE":
+        status["state"] = "SERVICE_STOPPED"
+        status["status_text"] = f"WARNING: Honeypot service is STOPPED on Port {HONEYPOT_PORT}. Trigger Self-Healing to recover."
+        status["active_phase"] = "SERVICE_OFFLINE"
+
+    return status
 
 def set_system_status(status_dict):
     with open(STATUS_FILE, "w", encoding="utf-8") as f:
@@ -93,6 +158,71 @@ def enrich_event(event):
         event["country"] = GEO_MAP.get(ip, "International Proxy")
     return event
 
+# ------------------------------------------------------------------------------
+# BRUTE-FORCE DETECTION
+# ------------------------------------------------------------------------------
+
+def detect_brute_force_alerts(events):
+    """Detect 3+ failed SSH logins from same IP within 5 minutes.
+    Skips simulation records. Prevents duplicate alerts."""
+    failed_by_ip = {}
+    for e in events:
+        if e.get("simulation") is True or str(e.get("simulation")).lower() == "true":
+            continue
+        if e.get("eventid") != "cowrie.login.failed":
+            continue
+        ip = e.get("src_ip")
+        ts_str = e.get("timestamp")
+        if not ip or not ts_str:
+            continue
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        failed_by_ip.setdefault(ip, []).append(ts)
+
+    # Load existing alert IDs to prevent duplicates
+    existing_ids = set()
+    if os.path.exists(ALERT_FILE):
+        try:
+            with open(ALERT_FILE, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        rec = json.loads(line)
+                        existing_ids.add(rec.get("alert_id", ""))
+        except Exception:
+            pass
+
+    new_alerts = []
+    for ip, timestamps in failed_by_ip.items():
+        timestamps.sort()
+        i = 0
+        while i < len(timestamps):
+            window_start = timestamps[i]
+            window_end = window_start + timedelta(seconds=BRUTE_FORCE_WINDOW)
+            window_hits = [t for t in timestamps[i:] if t <= window_end]
+            if len(window_hits) >= BRUTE_FORCE_THRESHOLD:
+                alert_id = f"alert_{ip}_{int(window_start.timestamp())}"
+                if alert_id not in existing_ids:
+                    alert = {
+                        "alert_id": alert_id,
+                        "ip": ip,
+                        "timestamp": window_start.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                        "failed_attempts": len(window_hits),
+                        "window_start": window_start.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                        "detected_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                        "message": f"SSH Brute-Force: {len(window_hits)} failed logins from {ip} within 5 minutes"
+                    }
+                    new_alerts.append(alert)
+                    existing_ids.add(alert_id)
+                    with open(ALERT_FILE, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(alert) + "\n")
+                i += len(window_hits)
+            else:
+                i += 1
+    return new_alerts
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -125,12 +255,10 @@ def api_stats():
     logins_success = sum(1 for e in events if e.get("eventid") == "cowrie.login.success")
     commands_typed = sum(1 for e in events if e.get("eventid") == "cowrie.command.input")
 
-    passwords = [e.get("password") for e in events if e.get("password")]
     usernames = [e.get("username") for e in events if e.get("username")]
     countries = [e.get("country") for e in events if e.get("country")]
     ips = [e.get("src_ip") for e in events if e.get("src_ip")]
 
-    top_passwords = Counter(passwords).most_common(5)
     top_usernames = Counter(usernames).most_common(5)
     top_countries = Counter(countries).most_common(5)
     top_ips = Counter(ips).most_common(5)
@@ -143,7 +271,7 @@ def api_stats():
         "logins_failed": logins_failed,
         "logins_success": logins_success,
         "commands_typed": commands_typed,
-        "top_passwords": [{"password": p, "count": c} for p, c in top_passwords],
+        "top_passwords": [],
         "top_usernames": [{"username": u, "count": c} for u, c in top_usernames],
         "top_countries": [{"country": k, "count": v} for k, v in top_countries],
         "top_ips": [{"ip": ip, "count": count} for ip, count in top_ips],
@@ -177,6 +305,25 @@ def api_commands():
 def api_status():
     return jsonify(get_system_status())
 
+@app.route("/api/alerts")
+def api_alerts():
+    """Returns all stored brute-force alerts and runs fresh detection on current logs."""
+    events = parse_cowrie_logs()
+    detect_brute_force_alerts(events)   # detect & persist any new alerts
+
+    alerts = []
+    if os.path.exists(ALERT_FILE):
+        try:
+            with open(ALERT_FILE, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        alerts.append(json.loads(line))
+        except Exception:
+            pass
+    alerts.sort(key=lambda x: x.get("detected_at", ""), reverse=True)
+    return jsonify(alerts)
+
 @app.route("/api/simulate-attack", methods=["POST"])
 def api_simulate_attack():
     """Generates realistic attacks into the log stream to test Nagios & Self-Healing"""
@@ -192,35 +339,34 @@ def api_simulate_attack():
 
     new_records = []
     if attack_type == "brute_force":
-        passwords = ["admin", "root", "toor", "123456", "superman", "guest"]
-        for p in passwords[:3]:
+        for _ in range(3):
             new_records.append({
                 "eventid": "cowrie.login.failed",
                 "src_ip": src_ip,
                 "username": "root",
-                "password": p,
                 "session": session_id,
                 "timestamp": ts,
-                "country": country
+                "country": country,
+                "simulation": True
             })
         new_records.append({
             "eventid": "cowrie.login.success",
             "src_ip": src_ip,
             "username": "root",
-            "password": "toor",
             "session": session_id,
             "timestamp": ts,
-            "country": country
+            "country": country,
+            "simulation": True
         })
     elif attack_type == "malware_command":
         new_records.append({
             "eventid": "cowrie.login.success",
             "src_ip": src_ip,
             "username": "admin",
-            "password": "password123",
             "session": session_id,
             "timestamp": ts,
-            "country": country
+            "country": country,
+            "simulation": True
         })
         malicious_cmds = [
             "cat /etc/passwd",
@@ -236,7 +382,8 @@ def api_simulate_attack():
                 "session": session_id,
                 "input": cmd,
                 "timestamp": ts,
-                "country": country
+                "country": country,
+                "simulation": True
             })
 
     # Append to active log
@@ -305,6 +452,8 @@ def api_trigger_healing():
     with tarfile.open(archive_path, "w:gz") as tar:
         if os.path.exists(log_src):
             tar.add(log_src, arcname="cowrie.json")
+        if os.path.exists(ALERT_FILE):
+            tar.add(ALERT_FILE, arcname="alerts.json")
         tar.add(manifest_path, arcname="forensic_triage_report.txt")
 
     # Clean up loose triage report
@@ -361,22 +510,56 @@ def api_trigger_healing():
     except Exception as e:
         print(f"Log rotation notice: {e}")
 
-    # 6. Reset system status back to healthy / ARMED
-    status = {
-        "state": "ACTIVE",
-        "status_text": f"Honeypot successfully healed & re-armed! Genuine evidence archived ({file_size_kb} KB, SHA-256: {real_hash[:12]}...)",
-        "last_healing_event": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-        "honeypot_ip": "10.0.2.10 (Public Trap)",
-        "active_phase": "ARMED_AND_OPERATIONAL",
-        "healing_in_progress": False
-    }
-    set_system_status(status)
+    # 6. Service recovery attempt:
+    # Check if honeypot is already running; if down, restart using sys.executable
+    port_was_alive = is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT)
+    recovery_action = "ALREADY_ACTIVE"
+    if not port_was_alive:
+        restarted = start_honeypot_service()
+        recovery_action = "RESTARTED" if restarted else "RESTART_FAILED"
 
-    return jsonify({
-        "status": "success",
-        "message": "Automated Incident Response & Self-Healing cycle completed successfully!",
-        "evidence": evidence_meta
-    })
+    # Verify port again after recovery attempt
+    port_is_healthy = is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT)
+    now_utc = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    if port_is_healthy:
+        status = {
+            "state": "ACTIVE",
+            "recovery_status": "HEALED",
+            "status_text": f"Honeypot successfully healed & re-armed! Genuine evidence archived ({file_size_kb} KB, SHA-256: {real_hash[:12]}...). Port {HONEYPOT_PORT} verified active.",
+            "last_healing_event": now_utc,
+            "honeypot_ip": f"{HONEYPOT_HOST}:{HONEYPOT_PORT} (Local Trap)",
+            "active_phase": "ARMED_AND_OPERATIONAL",
+            "healing_in_progress": False
+        }
+        set_system_status(status)
+        return jsonify({
+            "status": "success",
+            "recovery_status": "HEALED",
+            "action": recovery_action,
+            "port_verified": True,
+            "message": "Automated Incident Response & Self-Healing cycle completed successfully! Honeypot verified online.",
+            "evidence": evidence_meta
+        })
+    else:
+        status = {
+            "state": "HEALING_FAILED",
+            "recovery_status": "HEALING_FAILED",
+            "status_text": f"Self-healing FAILED: Honeypot unreachable on Port {HONEYPOT_PORT} after restart attempt! Evidence preserved ({file_size_kb} KB).",
+            "last_healing_event": now_utc,
+            "honeypot_ip": f"{HONEYPOT_HOST}:{HONEYPOT_PORT} (Local Trap)",
+            "active_phase": "RECOVERY_FAILED",
+            "healing_in_progress": False
+        }
+        set_system_status(status)
+        return jsonify({
+            "status": "error",
+            "recovery_status": "HEALING_FAILED",
+            "action": recovery_action,
+            "port_verified": False,
+            "message": f"Self-healing failed: Port {HONEYPOT_PORT} did not come online within 5 seconds.",
+            "evidence": evidence_meta
+        })
 
 @app.route("/api/evidence/download/<path:filename>")
 def api_download_evidence(filename):

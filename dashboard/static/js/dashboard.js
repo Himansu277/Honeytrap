@@ -72,19 +72,22 @@ function initCharts() {
 
 async function pollData() {
     try {
-        const [statsRes, attacksRes, cmdsRes] = await Promise.all([
+        const [statsRes, attacksRes, cmdsRes, alertsRes] = await Promise.all([
             fetch("/api/stats"),
             fetch("/api/attacks"),
-            fetch("/api/commands")
+            fetch("/api/commands"),
+            fetch("/api/alerts")
         ]);
 
         const stats = await statsRes.json();
         const attacks = await attacksRes.json();
         const commands = await cmdsRes.json();
+        const alerts = await alertsRes.json();
 
         updateStats(stats);
         updateAttacksTable(attacks);
         updateTerminalStream(commands);
+        updateAlerts(alerts);
     } catch (err) {
         console.error("Error fetching telemetry:", err);
     }
@@ -121,6 +124,12 @@ function updateStats(stats) {
         badge.innerText = "SELF-HEALING IN PROGRESS";
         icon.className = "fa-solid fa-arrows-spin fa-spin";
         iconContainer.className = "p-3 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 text-2xl";
+    } else if (status.state === "SERVICE_STOPPED" || status.state === "HEALING_FAILED") {
+        banner.className = "p-6 rounded-2xl border border-red-500/50 bg-red-950/30 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300";
+        badge.className = "px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-red-500/20 text-red-300 border border-red-500/40";
+        badge.innerText = status.state === "HEALING_FAILED" ? "HEALING FAILED" : "SERVICE OFFLINE";
+        icon.className = "fa-solid fa-circle-exclamation";
+        iconContainer.className = "p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 text-2xl";
     } else {
         banner.className = "p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300";
         badge.className = "px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
@@ -162,7 +171,7 @@ function updateAttacksTable(attacks) {
 
         if (att.eventid === "cowrie.login.failed") {
             badge = `<span class="px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 text-[10px]">Failed Login</span>`;
-            payload = `<span class="text-slate-400">User:</span> <strong class="text-slate-200">${att.username || ""}</strong> / <span class="text-slate-400">Pass:</span> <strong class="text-amber-300">${att.password || ""}</strong>`;
+            payload = `<span class="text-slate-400">User:</span> <strong class="text-slate-200">${escapeHtml(att.username || "")}</strong>` + (att.password ? ` / <span class="text-slate-400">Pass:</span> <strong class="text-amber-300">${escapeHtml(att.password)}</strong>` : ` <span class="text-slate-500 text-[10px]">(Password Redacted)</span>`);
         } else if (att.eventid === "cowrie.login.success") {
             badge = `<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px]">Lured In</span>`;
             payload = `<span class="text-emerald-400 font-semibold">Trapped Shell:</span> <strong class="text-slate-100">${att.username || ""}</strong>`;
@@ -232,7 +241,11 @@ async function triggerSelfHealing() {
             headers: { "Content-Type": "application/json" }
         });
         const data = await res.json();
-        alert("Self-Healing Cycle Triggered!\n- Forensics archived to AWS S3\n- EBS Snapshot initiated\n- Clean honeypot re-armed.");
+        if (data.recovery_status === "HEALING_FAILED" || data.status === "error") {
+            alert("Self-Healing FAILED: Honeypot service could not be verified on Port 2222.\nForensic evidence was preserved.");
+        } else {
+            alert(`Self-Healing Completed (${data.recovery_status})!\n- Forensic evidence archived with SHA-256 integrity\n- Honeypot service verified active on Port 2222\n- Action: ${data.action || "HEALED"}`);
+        }
         pollData();
     } catch (e) {
         alert("Healing trigger error: " + e);
@@ -241,4 +254,29 @@ async function triggerSelfHealing() {
 
 function escapeHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function updateAlerts(alerts) {
+    const list = document.getElementById("alertsList");
+    const count = document.getElementById("alertCount");
+    if (!list) return;
+    count.innerText = alerts.length + " alert" + (alerts.length !== 1 ? "s" : "");
+    if (alerts.length === 0) {
+        list.innerHTML = '<p class="text-slate-500 italic">No alerts detected yet. Run 3+ SSH login attempts to trigger detection.</p>';
+        return;
+    }
+    list.innerHTML = "";
+    alerts.forEach(a => {
+        const div = document.createElement("div");
+        div.className = "flex flex-wrap items-center gap-3 p-2.5 rounded-lg bg-red-950/30 border border-red-800/40";
+        div.innerHTML = `
+            <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+            <span class="text-red-300 font-bold">${escapeHtml(a.ip || "")}</span>
+            <span class="text-slate-400">${a.failed_attempts} failed attempts</span>
+            <span class="text-slate-500">•</span>
+            <span class="text-slate-400">${escapeHtml(a.detected_at || "")}</span>
+            <span class="ml-auto text-amber-400 text-[11px]">${escapeHtml(a.message || "")}</span>
+        `;
+        list.appendChild(div);
+    });
 }

@@ -60,7 +60,7 @@
                         HoneyTrap is ARMED and monitoring perimeter on Port 22.
                     </h2>
                     <p class="text-sm text-slate-400 mt-0.5">
-                        Lure Port: <span class="font-mono text-amber-400">TCP 22</span> | Isolation: <span class="font-mono text-cyan-400">NACL One-Way</span> | Auto-Heal: <span class="text-emerald-400 font-semibold">Active</span>
+                        Lure Port: <span class="font-mono text-amber-400">TCP 2222</span> | Isolation: <span class="font-mono text-cyan-400">Loopback (127.0.0.1)</span> | Auto-Heal: <span class="text-emerald-400 font-semibold">Active</span>
                     </p>
                 </div>
             </div>
@@ -114,6 +114,22 @@
                     <h4 class="text-xs font-bold text-slate-200 uppercase">Rebuild Clean</h4>
                     <p class="text-[11px] text-slate-400 mt-1">Ansible & Puppet re-arm pure trap in minutes</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- SSH Brute-Force Alerts Panel -->
+        <div class="bg-slate-900 border border-red-800/40 rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-bell text-red-400"></i>
+                    SSH Brute-Force Alerts
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">REAL DETECTION</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-400 border border-slate-700">Simulation events ignored</span>
+                </h3>
+                <span id="alertCount" class="text-xs text-slate-400 font-mono">0 alerts</span>
+            </div>
+            <div id="alertsList" class="space-y-2 text-xs font-mono">
+                <p class="text-slate-500 italic">No alerts detected yet. Run 3+ SSH login attempts to trigger detection.</p>
             </div>
         </div>
 

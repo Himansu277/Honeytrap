@@ -10,9 +10,12 @@ STATE_TYPE="$2"   # SOFT, HARD
 ATTEMPT="$3"      # 1, 2, 3...
 HOST_IP="$4"      # Target Honeypot IP
 
-LOG_FILE="/var/log/honeytrap-orchestration.log"
-ANSIBLE_DIR="/opt/honeytrap/ansible"
-DASHBOARD_STATUS_FILE="/opt/honeytrap/dashboard/status.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+LOG_FILE="${LOG_FILE:-$PROJECT_ROOT/nagios/nagios-eventhandler.log}"
+ANSIBLE_DIR="${ANSIBLE_DIR:-$PROJECT_ROOT/ansible}"
+DASHBOARD_STATUS_FILE="${DASHBOARD_STATUS_FILE:-$PROJECT_ROOT/dashboard/data/status.json}"
 
 timestamp() {
     date "+%Y-%m-%d %H:%M:%S"
@@ -40,12 +43,15 @@ EOF
 
         # 1. Step 1: Execute Ansible Incident Response Playbook (Forensics to S3 + EBS Snapshot)
         echo "[$(timestamp)] [Ansible] Running playbook: incident_response.yml..." >> "$LOG_FILE"
-        if [ -d "$ANSIBLE_DIR" ]; then
+        if [ -d "$ANSIBLE_DIR" ] && command -v ansible-playbook >/dev/null 2>&1; then
             cd "$ANSIBLE_DIR"
             ansible-playbook -i inventory/hosts.ini playbooks/incident_response.yml \
                 --extra-vars "target_host=$HOST_IP" >> "$LOG_FILE" 2>&1 || true
         else
-            echo "[$(timestamp)] [Warning] Ansible directory $ANSIBLE_DIR not found; running simulation hook." >> "$LOG_FILE"
+            echo "[$(timestamp)] [Ansible/Local] Triggering forensic preservation..." >> "$LOG_FILE"
+            if command -v curl >/dev/null 2>&1; then
+                curl -s -X POST http://127.0.0.1:5000/api/trigger-healing >> "$LOG_FILE" 2>&1 || true
+            fi
         fi
 
         # Update dashboard state to REBUILDING
@@ -61,7 +67,7 @@ EOF
 
         # 2. Step 2: Execute Ansible Honeypot Rebuild Playbook (Self-Healing)
         echo "[$(timestamp)] [Ansible] Running playbook: rebuild_honeypot.yml..." >> "$LOG_FILE"
-        if [ -d "$ANSIBLE_DIR" ]; then
+        if [ -d "$ANSIBLE_DIR" ] && command -v ansible-playbook >/dev/null 2>&1; then
             cd "$ANSIBLE_DIR"
             ansible-playbook -i inventory/hosts.ini playbooks/rebuild_honeypot.yml \
                 --extra-vars "target_host=$HOST_IP" >> "$LOG_FILE" 2>&1 || true
