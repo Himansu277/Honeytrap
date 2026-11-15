@@ -68,7 +68,8 @@ def test_ansible():
     playbooks = [
         "incident_response.yml",
         "rebuild_honeypot.yml",
-        "patch_prod.yml"
+        "patch_prod.yml",
+        "deploy_honeytrap.yml"
     ]
     
     total_tasks = 0

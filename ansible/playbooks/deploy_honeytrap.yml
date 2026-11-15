@@ -1,0 +1,166 @@
+---
+# ==============================================================================
+# HoneyTrap - Playbook 4: deploy_honeytrap.yml
+# Operational Deployment: Deploys HoneyTrap and Services on Amazon Linux 2023
+# ==============================================================================
+- name: Deploy HoneyTrap Application and Services on Amazon Linux 2023
+  hosts: honeypot
+  become: yes
+  gather_facts: yes
+  vars:
+    app_root: "/opt/honeytrap"
+    venv_dir: "/opt/honeytrap/venv"
+
+  tasks:
+    - name: Ensure required system packages are installed via DNF
+      ansible.builtin.dnf:
+        name:
+          - python3
+          - python3-pip
+          - python3-devel
+          - git
+          - curl
+          - jq
+          - iptables
+          - iptables-services
+          - httpd
+        state: present
+
+    - name: Create HoneyTrap application directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - "{{ app_root }}"
+        - "{{ app_root }}/dashboard"
+        - "{{ app_root }}/dashboard/data"
+        - "{{ app_root }}/dashboard/evidence"
+        - "{{ app_root }}/dashboard/templates"
+        - "{{ app_root }}/dashboard/static"
+        - "{{ app_root }}/scripts"
+        - "{{ app_root }}/puppet"
+        - "{{ app_root }}/nagios"
+        - "/etc/honeytrap"
+
+    - name: Create Python virtual environment
+      ansible.builtin.command:
+        cmd: python3 -m venv {{ venv_dir }}
+        creates: "{{ venv_dir }}/bin/python3"
+
+    - name: Install Python dependencies inside venv
+      ansible.builtin.pip:
+        name:
+          - flask
+          - requests
+          - boto3
+          - paramiko
+        virtualenv: "{{ venv_dir }}"
+
+    - name: Configure environment variables for HoneyTrap
+      ansible.builtin.copy:
+        dest: /etc/honeytrap/env
+        content: |
+          S3_BUCKET_NAME={{ s3_evidence_bucket }}
+          AWS_DEFAULT_REGION={{ aws_region }}
+          HONEYPOT_BIND_HOST=0.0.0.0
+          HONEYPOT_BIND_PORT=22
+          HONEYPOT_HOST=127.0.0.1
+          HONEYPOT_PORT=22
+        mode: '0600'
+        owner: root
+        group: root
+
+    - name: Deploy honeytrap-honeypot systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/honeytrap-honeypot.service
+        content: |
+          [Unit]
+          Description=HoneyTrap Python Paramiko SSH Honeypot
+          After=network.target sshd.service
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory={{ app_root }}
+          EnvironmentFile=-/etc/honeytrap/env
+          Environment=HONEYPOT_BIND_HOST=0.0.0.0
+          Environment=HONEYPOT_BIND_PORT=22
+          ExecStart={{ venv_dir }}/bin/python3 {{ app_root }}/scripts/honeypot_service.py
+          Restart=always
+          RestartSec=3
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Deploy honeytrap-dashboard systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/honeytrap-dashboard.service
+        content: |
+          [Unit]
+          Description=HoneyTrap Threat Intelligence & Self-Healing Dashboard
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory={{ app_root }}
+          EnvironmentFile=-/etc/honeytrap/env
+          Environment=HONEYPOT_HOST=127.0.0.1
+          Environment=HONEYPOT_PORT=22
+          ExecStart={{ venv_dir }}/bin/python3 {{ app_root }}/dashboard/app.py
+          Restart=always
+          RestartSec=3
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start HoneyTrap services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - honeytrap-honeypot
+        - honeytrap-dashboard
+
+    - name: Verify Honeypot listener is active on Port 22
+      ansible.builtin.wait_for:
+        port: 22
+        host: 127.0.0.1
+        delay: 1
+        timeout: 15
+
+    - name: Verify Dashboard is active on Port 5000
+      ansible.builtin.wait_for:
+        port: 5000
+        host: 127.0.0.1
+        delay: 1
+        timeout: 15
+
+    - name: Test Dashboard HTTP API endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5000/api/status"
+        method: GET
+        status_code: 200
+        return_content: yes
+      register: dashboard_status
+
+    - name: Display deployment success summary
+      ansible.builtin.debug:
+        msg:
+          - "=========================================================="
+          - " HoneyTrap Successfully Deployed on Amazon Linux 2023!"
+          - " Honeypot Service : Active on Port 22"
+          - " Dashboard Service: Active on Port 5000"
+          - " System State     : {{ (dashboard_status.content | from_json).state }}"
+          - " S3 Evidence Target: {{ s3_evidence_bucket }}"
+          - "=========================================================="

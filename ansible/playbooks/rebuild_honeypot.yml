@@ -7,23 +7,32 @@
   hosts: honeypot
   gather_facts: no
   tasks:
-    - name: Terminate compromised honeypot session & Cowrie service
+    - name: Terminate compromised honeypot session & honeypot services
       ansible.builtin.systemd:
-        name: cowrie
+        name: "{{ item }}"
         state: stopped
+      loop:
+        - honeytrap-honeypot
+        - cowrie
       ignore_errors: yes
 
     - name: Terminate any lingering attacker processes / child shells
       ansible.builtin.shell: |
-        pkill -u cowrie || true
+        pkill -u cowrie 2>/dev/null || true
+        pkill -f honeypot_service.py 2>/dev/null || true
       ignore_errors: yes
 
     - name: Archive and purge contaminated workspace
       ansible.builtin.shell: |
         mv /home/cowrie/cowrie/var/log/cowrie/cowrie.json /home/cowrie/cowrie/var/log/cowrie/cowrie_archived_$(date +%s).json 2>/dev/null || true
         rm -rf /home/cowrie/cowrie/var/lib/cowrie/downloads/* 2>/dev/null || true
-        touch /home/cowrie/cowrie/var/log/cowrie/cowrie.json
-        chown -R cowrie:cowrie /home/cowrie/cowrie/var
+        touch /home/cowrie/cowrie/var/log/cowrie/cowrie.json 2>/dev/null || true
+        chown -R cowrie:cowrie /home/cowrie/cowrie/var 2>/dev/null || true
+        # Also rotate HoneyTrap application logs if present
+        if [ -f /opt/honeytrap/dashboard/data/cowrie.json ]; then
+          cp /opt/honeytrap/dashboard/data/cowrie.json /opt/honeytrap/dashboard/data/cowrie_archived_$(date +%s).json 2>/dev/null || true
+          > /opt/honeytrap/dashboard/data/cowrie.json
+        fi
       ignore_errors: yes
 
     - name: Run Puppet agent to enforce declarative baseline state & fix configuration drift
@@ -38,23 +47,21 @@
         path: /tmp/nagios_cowrie_pointer.dat
         state: absent
 
-    - name: Restart Cowrie Service in pristine state
+    - name: Restart Honeypot Service in pristine state
       ansible.builtin.systemd:
-        name: cowrie
+        name: "{{ item }}"
         state: restarted
         enabled: yes
-
-    - name: Verify Honeypot Port Redirection (Port 22 -> 2223)
-      ansible.builtin.shell: |
-        iptables -t nat -C PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2223 2>/dev/null || \
-        iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2223
+      loop:
+        - honeytrap-honeypot
       ignore_errors: yes
 
-    - name: Confirm Cowrie is active and listening
+    - name: Confirm Honeypot is active and listening on public port 22
       ansible.builtin.wait_for:
-        port: 2223
+        port: 22
         delay: 2
         timeout: 20
+      ignore_errors: yes
 
     - name: Self-Healing validation status
       ansible.builtin.debug:

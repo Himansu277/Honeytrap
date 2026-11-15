@@ -34,10 +34,18 @@ resource "aws_instance" "honeytrap_server" {
 
   vpc_security_group_ids = [aws_security_group.honeytrap_sg.id]
 
-  user_data = file("${path.module}/user_data/server_init.sh")
+  user_data = <<-EOF
+#!/usr/bin/env bash
+mkdir -p /etc/honeytrap
+echo "S3_BUCKET_NAME=${aws_s3_bucket.evidence_bucket.bucket}" > /etc/honeytrap/env
+echo "AWS_DEFAULT_REGION=${var.aws_region}" >> /etc/honeytrap/env
+chmod 600 /etc/honeytrap/env
+
+${file("${path.module}/user_data/server_init.sh")}
+EOF
 
   root_block_device {
-    volume_size           = 15 # 15 GB gp3 fits well inside AWS 30 GB Free Tier
+    volume_size           = var.root_volume_size # 25 GB gp3 EBS
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true

@@ -35,6 +35,10 @@
         if [ -d "{{ cowrie_tty_dir }}" ]; then
           cp -r {{ cowrie_tty_dir }} {{ evidence_dir }}/cowrie_tty_recordings
         fi
+        if [ -f /opt/honeytrap/dashboard/data/cowrie.json ]; then
+          mkdir -p {{ evidence_dir }}/honeytrap_logs
+          cp /opt/honeytrap/dashboard/data/*.json {{ evidence_dir }}/honeytrap_logs/ 2>/dev/null || true
+        fi
       ignore_errors: yes
 
     - name: Compress evidence folder into encrypted/secured archive

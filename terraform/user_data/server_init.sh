@@ -118,6 +118,44 @@ if [ ! -f "/usr/local/nagios/bin/nagios" ]; then
     make
     make install
 
+    # Configure Nagios Core service definitions for HoneyTrap
+    cat << 'EOF' > /usr/local/nagios/etc/objects/honeytrap.cfg
+# ==============================================================================
+# HoneyTrap Single-Server Monitored Services for Genuine Nagios Core
+# ==============================================================================
+
+define service {
+    use                     generic-service
+    host_name               localhost
+    service_description     HoneyTrap_Honeypot_Port22
+    check_command           check_ssh!-p 22
+    notes                   "Monitors Python Paramiko SSH Honeypot listening on port 22"
+}
+
+define service {
+    use                     generic-service
+    host_name               localhost
+    service_description     HoneyTrap_Admin_SSH_Port2222
+    check_command           check_ssh!-p 2222
+    notes                   "Monitors Real Administrative SSH listening on port 2222"
+}
+
+define service {
+    use                     generic-service
+    host_name               localhost
+    service_description     HoneyTrap_Dashboard_Port5000
+    check_command           check_http!-p 5000 -u /api/status
+    notes                   "Monitors HoneyTrap Threat Intelligence Flask Dashboard on port 5000"
+}
+EOF
+
+    if ! grep -q "objects/honeytrap.cfg" /usr/local/nagios/etc/nagios.cfg; then
+        echo "cfg_file=/usr/local/nagios/etc/objects/honeytrap.cfg" >> /usr/local/nagios/etc/nagios.cfg
+    fi
+
+    # Validate Nagios Core configuration
+    /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg || true
+
     systemctl enable httpd
     systemctl restart httpd
     systemctl enable nagios
@@ -135,6 +173,7 @@ if [ ! -f "/opt/puppetlabs/bin/puppet" ]; then
     dnf install -y puppet-agent || true
     if [ -f "/opt/puppetlabs/bin/puppet" ]; then
         ln -sf /opt/puppetlabs/bin/puppet /usr/local/bin/puppet || true
+        /opt/puppetlabs/bin/puppet module install puppetlabs-stdlib --target-dir /etc/puppetlabs/code/environments/production/modules || true
         echo "[+] Puppet 8 Agent installed successfully on AL2023."
     fi
 else
@@ -196,6 +235,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/honeytrap
+EnvironmentFile=-/etc/honeytrap/env
 Environment=HONEYPOT_HOST=127.0.0.1
 Environment=HONEYPOT_PORT=22
 ExecStart=/opt/honeytrap/venv/bin/python3 /opt/honeytrap/dashboard/app.py

@@ -7,6 +7,11 @@ output "server_public_ip" {
   value       = aws_instance.honeytrap_server.public_ip
 }
 
+output "server_instance_id" {
+  description = "EC2 Instance ID of the HoneyTrap All-in-One Server"
+  value       = aws_instance.honeytrap_server.id
+}
+
 output "evidence_s3_bucket" {
   description = "S3 bucket name for immutable forensic evidence storage"
   value       = aws_s3_bucket.evidence_bucket.bucket

@@ -3,10 +3,18 @@
 # Enforces desired state and self-corrects drift across nodes
 # ==============================================================================
 
-# Default fallback node
+# Default node policy (Applies to Single-Server EC2 deployment)
 node default {
   notify { 'HoneyTrap Node Configuration':
-    message => "Applying baseline policy to node ${::fqdn}",
+    message => "Applying baseline security and hardening policy to node ${::fqdn}",
+  }
+
+  class { 'hardening':
+    ssh_port          => 2222,
+    permit_root_login => 'prohibit-password',
+    password_auth     => 'no',
+    enable_fail2ban   => false, # fail2ban is disabled by default on AL2023 to avoid epel requirement
+    enable_auditd     => true,
   }
 }
 

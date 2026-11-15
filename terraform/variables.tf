@@ -39,9 +39,15 @@ variable "admin_ssh_port" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance size (t3.micro is 100% Free Tier eligible)"
+  description = "EC2 instance size (t3.small provides 2 GiB RAM, ideal for Nagios Core, Apache httpd, and HoneyTrap)"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"
+}
+
+variable "root_volume_size" {
+  description = "Root EBS storage volume size in GB (gp3)"
+  type        = number
+  default     = 25
 }
 
 variable "key_name" {
