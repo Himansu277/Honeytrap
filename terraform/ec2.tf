@@ -37,9 +37,15 @@ resource "aws_instance" "honeytrap_server" {
   user_data = <<-EOF
 #!/usr/bin/env bash
 mkdir -p /etc/honeytrap
-echo "S3_BUCKET_NAME=${aws_s3_bucket.evidence_bucket.bucket}" > /etc/honeytrap/env
-echo "AWS_DEFAULT_REGION=${var.aws_region}" >> /etc/honeytrap/env
-chmod 600 /etc/honeytrap/env
+cat << 'ENVEOF' > /etc/honeytrap/env
+S3_BUCKET_NAME=${aws_s3_bucket.evidence_bucket.bucket}
+AWS_DEFAULT_REGION=${var.aws_region}
+HONEYPOT_BIND_HOST=0.0.0.0
+HONEYPOT_BIND_PORT=22
+HONEYPOT_HOST=127.0.0.1
+HONEYPOT_PORT=22
+ENVEOF
+chmod 644 /etc/honeytrap/env
 
 ${file("${path.module}/user_data/server_init.sh")}
 EOF

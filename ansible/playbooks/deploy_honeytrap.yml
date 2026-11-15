@@ -26,13 +26,30 @@
           - httpd
         state: present
 
+    - name: Create dedicated unprivileged honeytrap system user
+      ansible.builtin.user:
+        name: honeytrap
+        system: yes
+        shell: /sbin/nologin
+        home: "{{ app_root }}"
+        create_home: no
+
+    - name: Configure narrowly scoped sudoers rule for dashboard self-healing
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/honeytrap-dashboard
+        content: |
+          # HoneyTrap: scoped permission to restart and check only the honeypot systemd unit
+          honeytrap ALL=(root) NOPASSWD: /usr/bin/systemctl restart honeytrap-honeypot.service, /usr/bin/systemctl status honeytrap-honeypot.service, /usr/bin/systemctl is-active honeytrap-honeypot.service
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
     - name: Create HoneyTrap application directory structure
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: '0755'
-        owner: root
-        group: root
+        owner: honeytrap
+        group: honeytrap
       loop:
         - "{{ app_root }}"
         - "{{ app_root }}/dashboard"
@@ -59,7 +76,12 @@
           - paramiko
         virtualenv: "{{ venv_dir }}"
 
-    - name: Configure environment variables for HoneyTrap
+    - name: Check if /etc/honeytrap/env already exists from Terraform
+      ansible.builtin.stat:
+        path: /etc/honeytrap/env
+      register: env_file_stat
+
+    - name: Configure environment variables for HoneyTrap (if not present)
       ansible.builtin.copy:
         dest: /etc/honeytrap/env
         content: |
@@ -69,9 +91,10 @@
           HONEYPOT_BIND_PORT=22
           HONEYPOT_HOST=127.0.0.1
           HONEYPOT_PORT=22
-        mode: '0600'
+        mode: '0640'
         owner: root
-        group: root
+        group: honeytrap
+      when: not env_file_stat.stat.exists
 
     - name: Deploy honeytrap-honeypot systemd unit
       ansible.builtin.copy:
@@ -91,6 +114,9 @@
           ExecStart={{ venv_dir }}/bin/python3 {{ app_root }}/scripts/honeypot_service.py
           Restart=always
           RestartSec=3
+          ProtectSystem=full
+          ProtectHome=true
+          NoNewPrivileges=true
 
           [Install]
           WantedBy=multi-user.target
@@ -106,7 +132,8 @@
 
           [Service]
           Type=simple
-          User=root
+          User=honeytrap
+          Group=honeytrap
           WorkingDirectory={{ app_root }}
           EnvironmentFile=-/etc/honeytrap/env
           Environment=HONEYPOT_HOST=127.0.0.1
@@ -114,6 +141,8 @@
           ExecStart={{ venv_dir }}/bin/python3 {{ app_root }}/dashboard/app.py
           Restart=always
           RestartSec=3
+          ProtectSystem=full
+          ProtectHome=true
 
           [Install]
           WantedBy=multi-user.target

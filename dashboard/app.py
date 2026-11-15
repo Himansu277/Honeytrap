@@ -14,6 +14,8 @@ import subprocess
 import tarfile
 import hashlib
 import shutil
+from functools import wraps
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from collections import Counter
 from flask import Flask, render_template, jsonify, request, send_from_directory
@@ -31,7 +33,7 @@ SYSTEM_COWRIE_LOG = "/home/cowrie/cowrie/var/log/cowrie/cowrie.json"
 
 HONEYPOT_SCRIPT = os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")
 HONEYPOT_HOST = os.environ.get("HONEYPOT_HOST", "127.0.0.1")
-HONEYPOT_PORT = int(os.environ.get("HONEYPOT_PORT", 2222))
+HONEYPOT_PORT = int(os.environ.get("HONEYPOT_PORT", 22))
 
 BRUTE_FORCE_WINDOW = 300    # 5 minutes
 BRUTE_FORCE_THRESHOLD = 3   # minimum failed attempts to trigger alert
@@ -40,7 +42,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
 def is_honeypot_alive(host=HONEYPOT_HOST, port=HONEYPOT_PORT, timeout=1.0):
-    """Checks whether 127.0.0.1:2222 is accepting TCP connections."""
+    """Checks whether honeypot port (default 22 in AWS, or configured port) is accepting TCP connections."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
     try:
@@ -50,29 +52,47 @@ def is_honeypot_alive(host=HONEYPOT_HOST, port=HONEYPOT_PORT, timeout=1.0):
     except Exception:
         return False
 
-def start_honeypot_service():
-    """Starts scripts/honeypot_service.py if port 2222 is down.
-    Waits up to 5 seconds for the port to become available.
-    Returns True if honeypot is running and verified listening."""
+def restart_honeypot_service():
+    """Restarts the honeypot service via systemd on Linux, eliminating subprocess.Popen spawning.
+    Uses narrowly scoped sudoers rule if running as unprivileged user.
+    On Windows test environment, falls back to local test worker.
+    Waits up to 5 seconds and verifies TCP connectivity."""
     if is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT):
         return True  # already running, prevent duplicate processes
 
-    if not os.path.exists(HONEYPOT_SCRIPT):
-        print(f"[!] Honeypot script not found at: {HONEYPOT_SCRIPT}")
+    # 1. On Linux (Amazon Linux 2023), use systemctl
+    systemctl_path = shutil.which("systemctl") or "/usr/bin/systemctl"
+    if os.path.exists(systemctl_path):
+        cmd = [systemctl_path, "restart", "honeytrap-honeypot.service"]
+        if hasattr(os, "geteuid") and os.geteuid() != 0:
+            cmd = ["sudo", "-n", systemctl_path, "restart", "honeytrap-honeypot.service"]
+        try:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+            if res.returncode != 0:
+                print(f"[!] systemctl restart returned {res.returncode}: {res.stderr.decode('utf-8', errors='ignore')}")
+        except Exception as e:
+            print(f"[!] Systemctl invocation failed: {e}")
+            return False
+    elif sys.platform == "win32":
+        # Windows development test fallback
+        if not os.path.exists(HONEYPOT_SCRIPT):
+            print(f"[!] Honeypot script not found at: {HONEYPOT_SCRIPT}")
+            return False
+        try:
+            subprocess.Popen(
+                [sys.executable, HONEYPOT_SCRIPT],
+                cwd=PROJECT_ROOT,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        except Exception as e:
+            print(f"[!] Windows test fallback failed: {e}")
+            return False
+    else:
+        print("[!] No supported init system found to restart honeypot service.")
         return False
 
-    try:
-        subprocess.Popen(
-            [sys.executable, HONEYPOT_SCRIPT],
-            cwd=PROJECT_ROOT,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except Exception as e:
-        print(f"[!] Subprocess launch failed: {e}")
-        return False
-
-    # Wait up to 5 seconds for the port to become available
+    # 2. Wait up to 5 seconds for the port to become available and verify
     deadline = time.time() + 5.0
     while time.time() < deadline:
         time.sleep(0.5)
@@ -80,6 +100,48 @@ def start_honeypot_service():
             return True
 
     return False
+
+def require_dashboard_auth(f):
+    """Application-level access control & CSRF protection for sensitive POST operations."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # 1. Check Origin / Referer to prevent Cross-Site Request Forgery (CSRF)
+        origin = request.headers.get("Origin") or request.headers.get("Referer")
+        if origin:
+            parsed = urlparse(origin)
+            if parsed.netloc and parsed.netloc != request.host and not parsed.netloc.startswith("127.0.0.1") and not parsed.netloc.startswith("localhost"):
+                return jsonify({
+                    "status": "error",
+                    "message": "Forbidden: Cross-Site Request Forgery (CSRF) origin mismatch."
+                }), 403
+
+        # 2. Check for optional API Key authentication if configured
+        expected_api_key = os.environ.get("DASHBOARD_API_KEY")
+        if expected_api_key:
+            auth_header = request.headers.get("X-API-Key") or request.headers.get("Authorization", "")
+            if auth_header != expected_api_key and auth_header != f"Bearer {expected_api_key}":
+                return jsonify({
+                    "status": "error",
+                    "message": "Unauthorized: Invalid or missing API key."
+                }), 401
+
+        # 3. Reject non-JSON or cross-origin simple requests without custom security headers
+        is_loopback = request.remote_addr in ["127.0.0.1", "::1", "localhost"]
+        has_custom_header = bool(
+            request.headers.get("X-Requested-With") or
+            request.headers.get("X-HoneyTrap-Origin") or
+            request.headers.get("X-API-Key") or
+            request.is_json or
+            request.content_type == "application/json"
+        )
+        if not has_custom_header and not is_loopback:
+            return jsonify({
+                "status": "error",
+                "message": "Forbidden: Missing required application security headers."
+            }), 403
+
+        return f(*args, **kwargs)
+    return decorated
 
 # Default initial healing status
 DEFAULT_STATUS = {
@@ -325,6 +387,7 @@ def api_alerts():
     return jsonify(alerts)
 
 @app.route("/api/simulate-attack", methods=["POST"])
+@require_dashboard_auth
 def api_simulate_attack():
     """Generates realistic attacks into the log stream to test Nagios & Self-Healing"""
     data = request.get_json() or {}
@@ -410,11 +473,14 @@ def api_simulate_attack():
     })
 
 @app.route("/api/trigger-healing", methods=["POST"])
+@require_dashboard_auth
 def api_trigger_healing():
     """Executes the genuine automated self-healing pipeline:
     1. Bundles active Cowrie logs and triage manifest into a real .tar.gz archive.
     2. Calculates real SHA-256 cryptographic forensic hash.
-    3. Purges/rotates compromised logs to re-arm pristine honeypot trap.
+    3. Uploads evidence to S3 using EC2 IAM role (if configured) and verifies object existence.
+    4. Purges/rotates compromised logs to re-arm pristine honeypot trap.
+    5. Restarts honeypot service cleanly via systemd on Linux, avoiding duplicate processes.
     """
     ts = datetime.utcnow().strftime("%Y-%m-%d_%H%M%S")
     archive_name = f"incident_evidence_{ts}.tar.gz"
@@ -470,20 +536,21 @@ def api_trigger_healing():
     real_hash = sha256.hexdigest()
     file_size_kb = round(os.path.getsize(archive_path) / 1024, 2)
 
-    # 4. Check if AWS S3 is available (uploaded if credentials present)
-    s3_uri = f"s3://honeytrap-evidence-store/incidents/{ts}/{archive_name}"
+    # 4. Check if AWS S3 is available (uploaded via IAM role if bucket configured)
+    bucket_name = os.environ.get("S3_BUCKET_NAME")
+    s3_uri = f"s3://{bucket_name}/incidents/{ts}/{archive_name}" if bucket_name else "LOCAL_STORAGE_ONLY"
     storage_status = "SECURED_LOCALLY"
-    try:
-        import boto3
-        s3 = boto3.client("s3")
-        # attempt upload if bucket exists
-        bucket_name = os.environ.get("S3_BUCKET_NAME")
-        if bucket_name:
+    if bucket_name:
+        try:
+            import boto3
+            s3 = boto3.client("s3")
             s3.upload_file(archive_path, bucket_name, f"incidents/{ts}/{archive_name}")
+            # Actively verify the uploaded object exists in the S3 bucket
+            s3.head_object(Bucket=bucket_name, Key=f"incidents/{ts}/{archive_name}")
             s3_uri = f"s3://{bucket_name}/incidents/{ts}/{archive_name}"
             storage_status = "SECURED_TO_AWS_S3"
-    except Exception:
-        pass
+        except Exception as e:
+            print(f"[!] S3 upload note: {e}")
 
     evidence_meta = {
         "archive_id": archive_name,
@@ -511,11 +578,11 @@ def api_trigger_healing():
         print(f"Log rotation notice: {e}")
 
     # 6. Service recovery attempt:
-    # Check if honeypot is already running; if down, restart using sys.executable
+    # Check if honeypot is already running; if down, restart via systemd
     port_was_alive = is_honeypot_alive(HONEYPOT_HOST, HONEYPOT_PORT)
     recovery_action = "ALREADY_ACTIVE"
     if not port_was_alive:
-        restarted = start_honeypot_service()
+        restarted = restart_honeypot_service()
         recovery_action = "RESTARTED" if restarted else "RESTART_FAILED"
 
     # Verify port again after recovery attempt
@@ -580,10 +647,11 @@ def api_evidence():
     return jsonify(records)
 
 @app.route("/api/reset", methods=["POST"])
+@require_dashboard_auth
 def api_reset():
     set_system_status(DEFAULT_STATUS)
     return jsonify({"status": "reset_successful"})
 
 if __name__ == "__main__":
-    print("[+] HoneyTrap Threat Intelligence & Self-Healing Dashboard starting on port 5000...")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    print(f"[+] HoneyTrap Threat Intelligence & Self-Healing Dashboard starting on port 5000 (Honeypot Target Port: {HONEYPOT_PORT})...")
+    app.run(host="0.0.0.0", port=5000, debug=False)

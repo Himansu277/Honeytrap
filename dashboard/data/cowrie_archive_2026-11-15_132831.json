@@ -1,0 +1,4 @@
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 59785, "dst_port": 2222, "session": "6dbdb7d6", "timestamp": "2026-11-15T13:28:25.851943Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 59786, "dst_port": 2222, "session": "734653e3", "timestamp": "2026-11-15T13:28:25.853964Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 59785, "session": "6dbdb7d6", "timestamp": "2026-11-15T13:28:25.863025Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 59786, "session": "734653e3", "timestamp": "2026-11-15T13:28:25.863025Z", "country": "Localhost (Test Lab)"}

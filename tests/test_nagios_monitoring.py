@@ -30,9 +30,10 @@ def is_port_listening(host="127.0.0.1", port=2222, timeout=0.8):
 
 def ensure_services():
     """Ensures dashboard (5000) and honeypot (2222) are running and active for the test."""
+    test_env = {**os.environ, "HONEYPOT_PORT": "2222", "HONEYPOT_BIND_PORT": "2222"}
     if not is_port_listening("127.0.0.1", 2222):
         print("  [Setup] Starting scripts/honeypot_service.py on port 2222...")
-        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")], cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")], env=test_env, cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.time() + 5.0
         while time.time() < deadline:
             time.sleep(0.5)
@@ -41,7 +42,7 @@ def ensure_services():
 
     if not is_port_listening("127.0.0.1", 5000):
         print("  [Setup] Starting dashboard/app.py on port 5000...")
-        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "dashboard", "app.py")], cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "dashboard", "app.py")], env=test_env, cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         deadline = time.time() + 5.0
         while time.time() < deadline:
             time.sleep(0.5)

@@ -1,0 +1,11 @@
+{
+  "archive_id": "incident_evidence_2026-11-15_132839.tar.gz",
+  "file_size_kb": "1.11 KB",
+  "s3_path": "LOCAL_STORAGE_ONLY",
+  "storage_status": "SECURED_LOCALLY",
+  "download_url": "/api/evidence/download/incident_evidence_2026-11-15_132839.tar.gz",
+  "ebs_snapshot_id": "DISK_STATE_FROZEN",
+  "timestamp": "2026-11-15 13:28:39 UTC",
+  "status": "EVIDENCE_VERIFIED",
+  "hash_sha256": "ccb4e48ac59a158acc0e723038980e59d71a3d5fd381335064c3f4de6cae9e51"
+}

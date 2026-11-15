@@ -186,8 +186,9 @@ else
     echo "[+] Puppet Agent already present at /opt/puppetlabs/bin/puppet."
 fi
 
-# 7. Setup Application Directories
-echo "[*] Setting up HoneyTrap application directories..."
+# 7. Setup Application Directories and Dedicated Unprivileged User
+echo "[*] Setting up HoneyTrap user and application directories..."
+useradd -r -s /sbin/nologin -d /opt/honeytrap honeytrap || true
 mkdir -p /opt/honeytrap/ansible
 mkdir -p /opt/honeytrap/nagios/conf.d
 mkdir -p /opt/honeytrap/nagios/plugins
@@ -196,19 +197,35 @@ mkdir -p /opt/honeytrap/dashboard/data
 mkdir -p /opt/honeytrap/dashboard/evidence
 mkdir -p /opt/honeytrap/scripts
 mkdir -p /opt/honeytrap/puppet
+chown -R honeytrap:honeytrap /opt/honeytrap
 
-# 8. Setup Python Virtual Environment
+# 8. Configure Narrowly Scoped Sudoers Rule for Self-Healing
+echo "[*] Configuring narrowly scoped sudoers rule for self-healing..."
+mkdir -p /etc/sudoers.d
+cat << 'EOF' > /etc/sudoers.d/honeytrap-dashboard
+# HoneyTrap: scoped permission to restart and check only the honeypot systemd unit
+honeytrap ALL=(root) NOPASSWD: /usr/bin/systemctl restart honeytrap-honeypot.service, /usr/bin/systemctl status honeytrap-honeypot.service, /usr/bin/systemctl is-active honeytrap-honeypot.service
+EOF
+chmod 0440 /etc/sudoers.d/honeytrap-dashboard
+visudo -cf /etc/sudoers.d/honeytrap-dashboard || rm -f /etc/sudoers.d/honeytrap-dashboard
+
+# Set permissions on environment config
+chown root:honeytrap /etc/honeytrap/env 2>/dev/null || true
+chmod 640 /etc/honeytrap/env 2>/dev/null || true
+
+# 9. Setup Python Virtual Environment
 echo "[*] Setting up Python virtual environment..."
 if [ ! -d "/opt/honeytrap/venv" ]; then
     python3 -m venv /opt/honeytrap/venv
     /opt/honeytrap/venv/bin/pip install --upgrade pip
     /opt/honeytrap/venv/bin/pip install flask requests boto3 paramiko
+    chown -R honeytrap:honeytrap /opt/honeytrap/venv
     echo "[+] Python venv ready."
 else
     echo "[+] Python venv already configured."
 fi
 
-# 9. Configure Systemd Units for Honeypot & Dashboard
+# 10. Configure Systemd Units for Honeypot & Dashboard
 echo "[*] Deploying Systemd service units..."
 
 # A. Honeypot Service (Listens on Decoy Port 22)
@@ -221,17 +238,21 @@ After=network.target sshd.service
 Type=simple
 User=root
 WorkingDirectory=/opt/honeytrap
+EnvironmentFile=-/etc/honeytrap/env
 Environment=HONEYPOT_BIND_HOST=0.0.0.0
 Environment=HONEYPOT_BIND_PORT=22
 ExecStart=/opt/honeytrap/venv/bin/python3 /opt/honeytrap/scripts/honeypot_service.py
 Restart=always
 RestartSec=3
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# B. Dashboard Service (Listens on Port 5000)
+# B. Dashboard Service (Listens on Port 5000, runs unprivileged as honeytrap user)
 cat << 'EOF' > /etc/systemd/system/honeytrap-dashboard.service
 [Unit]
 Description=HoneyTrap Threat Intelligence & Self-Healing Dashboard
@@ -239,7 +260,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=honeytrap
+Group=honeytrap
 WorkingDirectory=/opt/honeytrap
 EnvironmentFile=-/etc/honeytrap/env
 Environment=HONEYPOT_HOST=127.0.0.1
@@ -247,6 +269,8 @@ Environment=HONEYPOT_PORT=22
 ExecStart=/opt/honeytrap/venv/bin/python3 /opt/honeytrap/dashboard/app.py
 Restart=always
 RestartSec=3
+ProtectSystem=full
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

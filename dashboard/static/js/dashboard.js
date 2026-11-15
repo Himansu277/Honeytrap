@@ -224,7 +224,11 @@ async function triggerSimulatedAttack(type) {
     try {
         const res = await fetch("/api/simulate-attack", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-HoneyTrap-Origin": "dashboard"
+            },
             body: JSON.stringify({ type: type })
         });
         const data = await res.json();
@@ -238,13 +242,17 @@ async function triggerSelfHealing() {
     try {
         const res = await fetch("/api/trigger-healing", {
             method: "POST",
-            headers: { "Content-Type": "application/json" }
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-HoneyTrap-Origin": "dashboard"
+            }
         });
         const data = await res.json();
         if (data.recovery_status === "HEALING_FAILED" || data.status === "error") {
-            alert("Self-Healing FAILED: Honeypot service could not be verified on Port 2222.\nForensic evidence was preserved.");
+            alert(`Self-Healing FAILED: Honeypot service could not be verified online.\nForensic evidence was preserved.`);
         } else {
-            alert(`Self-Healing Completed (${data.recovery_status})!\n- Forensic evidence archived with SHA-256 integrity\n- Honeypot service verified active on Port 2222\n- Action: ${data.action || "HEALED"}`);
+            alert(`Self-Healing Completed (${data.recovery_status})!\n- Forensic evidence archived with SHA-256 integrity\n- Honeypot service verified active\n- Action: ${data.action || "HEALED"}`);
         }
         pollData();
     } catch (e) {

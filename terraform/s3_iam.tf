@@ -50,16 +50,19 @@ resource "aws_iam_policy" "orchestration_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid      = "AllowEvidenceBucketListing"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.evidence_bucket.arn]
+      },
+      {
+        Sid    = "AllowEvidenceObjectOperations"
         Effect = "Allow"
         Action = [
           "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
+          "s3:GetObject"
         ]
-        Resource = [
-          aws_s3_bucket.evidence_bucket.arn,
-          "${aws_s3_bucket.evidence_bucket.arn}/*"
-        ]
+        Resource = ["${aws_s3_bucket.evidence_bucket.arn}/*"]
       }
     ]
   })

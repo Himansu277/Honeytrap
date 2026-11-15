@@ -14,6 +14,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DASHBOARD_URL = "http://127.0.0.1:5000"
 HONEYPOT_HOST = "127.0.0.1"
 HONEYPOT_PORT = 2222
+os.environ["HONEYPOT_PORT"] = str(HONEYPOT_PORT)
+os.environ["HONEYPOT_BIND_PORT"] = str(HONEYPOT_PORT)
 
 def is_port_listening(host=HONEYPOT_HOST, port=HONEYPOT_PORT, timeout=0.8):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +72,8 @@ def run_e2e_verification():
         dash_ok = (status_code == 200)
     except Exception as e:
         print(f"[-] Dashboard not responding: {e}. Starting dashboard...")
-        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "dashboard", "app.py")], cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        test_env = {**os.environ, "HONEYPOT_PORT": str(HONEYPOT_PORT), "HONEYPOT_BIND_PORT": str(HONEYPOT_PORT)}
+        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "dashboard", "app.py")], env=test_env, cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2)
         status_code, status_data = http_get("/api/status")
         dash_ok = (status_code == 200)
@@ -78,7 +81,8 @@ def run_e2e_verification():
     honeypot_ok = is_port_listening(HONEYPOT_HOST, HONEYPOT_PORT)
     if not honeypot_ok:
         print("[-] Honeypot not listening. Starting honeypot service...")
-        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")], cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        test_env = {**os.environ, "HONEYPOT_PORT": str(HONEYPOT_PORT), "HONEYPOT_BIND_PORT": str(HONEYPOT_PORT)}
+        subprocess.Popen([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "honeypot_service.py")], env=test_env, cwd=PROJECT_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2)
         honeypot_ok = is_port_listening(HONEYPOT_HOST, HONEYPOT_PORT)
 
