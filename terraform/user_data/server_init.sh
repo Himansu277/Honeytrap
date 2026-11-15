@@ -103,10 +103,16 @@ if [ ! -f "/usr/local/nagios/bin/nagios" ]; then
     make install-config
     make install-webconf
 
-    # Set web console credentials for operator (nagiosadmin / honeytrap2026!)
-    htpasswd -b -c /usr/local/nagios/etc/htpasswd.users nagiosadmin honeytrap2026!
+    # Generate unique strong password for operator; store in root-only file; never print in logs
+    set +x 2>/dev/null || true
+    NAGIOS_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 20)
+    mkdir -p /etc/nagios
+    echo "nagiosadmin:${NAGIOS_PASS}" > /etc/nagios/nagiosadmin.cred
+    chmod 600 /etc/nagios/nagiosadmin.cred
+    echo "${NAGIOS_PASS}" | htpasswd -i -c /usr/local/nagios/etc/htpasswd.users nagiosadmin >/dev/null 2>&1
     chown apache:apache /usr/local/nagios/etc/htpasswd.users
     chmod 640 /usr/local/nagios/etc/htpasswd.users
+    unset NAGIOS_PASS
 
     # Install Nagios Plugins
     echo "[*] Compiling Nagios official plugins..."

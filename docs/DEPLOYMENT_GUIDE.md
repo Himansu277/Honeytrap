@@ -77,7 +77,7 @@ nagios_web_url            = "http://54.210.12.34/nagios"
 
 1. **Confirm Email Subscription**: Check your inbox for the AWS SNS subscription confirmation email and click "Confirm subscription".
 2. **Access the Threat Dashboard**: Open `http://<management_node_public_ip>:5000` in your web browser.
-3. **Access Nagios Core**: Open `http://<management_node_public_ip>/nagios` (Username: `nagiosadmin`, Password: `honeytrap2026!`).
+3. **Access Nagios Core**: Open `http://<server_public_ip>/nagios` (Username: `nagiosadmin`, Password: retrieve from `/etc/nagios/nagiosadmin.cred` via `sudo cat /etc/nagios/nagiosadmin.cred` over SSH).
 
 ---
 

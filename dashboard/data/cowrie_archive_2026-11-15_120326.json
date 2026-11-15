@@ -1,0 +1,8 @@
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 64149, "dst_port": 2222, "session": "c40b5436", "timestamp": "2026-11-15T11:56:11.204349Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 64150, "dst_port": 2222, "session": "bfdc4567", "timestamp": "2026-11-15T11:56:11.204349Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 64149, "session": "c40b5436", "timestamp": "2026-11-15T11:56:11.205617Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 64150, "session": "bfdc4567", "timestamp": "2026-11-15T11:56:11.218123Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 64437, "dst_port": 2222, "session": "586f5cf1", "timestamp": "2026-11-15T12:03:26.750171Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 64437, "session": "586f5cf1", "timestamp": "2026-11-15T12:03:26.760524Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.connect", "src_ip": "127.0.0.1", "src_port": 64440, "dst_port": 2222, "session": "9d35b3c2", "timestamp": "2026-11-15T12:03:26.902463Z", "country": "Localhost (Test Lab)"}
+{"eventid": "cowrie.session.closed", "src_ip": "127.0.0.1", "src_port": 64440, "session": "9d35b3c2", "timestamp": "2026-11-15T12:03:26.910705Z", "country": "Localhost (Test Lab)"}

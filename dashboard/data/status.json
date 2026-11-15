@@ -1,8 +1,8 @@
 {
   "state": "ACTIVE",
   "recovery_status": "HEALED",
-  "status_text": "Honeypot successfully healed & re-armed! Genuine evidence archived (1.07 KB, SHA-256: ae3c5c23048c...). Port 2222 verified active.",
-  "last_healing_event": "2026-11-15 11:56:11 UTC",
+  "status_text": "Honeypot successfully healed & re-armed! Genuine evidence archived (1.1 KB, SHA-256: 1ad2a52a3b81...). Port 2222 verified active.",
+  "last_healing_event": "2026-11-15 12:03:52 UTC",
   "honeypot_ip": "127.0.0.1:2222 (Local Trap)",
   "active_phase": "ARMED_AND_OPERATIONAL",
   "healing_in_progress": false
