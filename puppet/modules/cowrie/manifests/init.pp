@@ -19,11 +19,17 @@ class cowrie (
     system     => true,
   }
 
-  # 2. Required packages
-  $packages = [
-    'git', 'python3-pip', 'python3-venv', 'libssl-dev',
-    'libffi-dev', 'build-essential', 'iptables-persistent', 'jq'
-  ]
+  # 2. Required packages (Amazon Linux / RedHat vs Debian / Ubuntu)
+  $packages = $::osfamily ? {
+    /(?i:RedHat|Amazon)/ => [
+      'git', 'python3-pip', 'openssl-devel', 'libffi-devel',
+      'gcc', 'make', 'iptables-services', 'jq'
+    ],
+    default              => [
+      'git', 'python3-pip', 'python3-venv', 'libssl-dev',
+      'libffi-dev', 'build-essential', 'iptables-persistent', 'jq'
+    ],
+  }
 
   package { $packages:
     ensure => installed,

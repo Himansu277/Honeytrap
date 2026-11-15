@@ -8,7 +8,22 @@ class nrpe (
   Boolean $is_honeypot   = false,
 ) {
 
-  package { ['nagios-nrpe-server', 'nagios-plugins']:
+  $nrpe_package = $::osfamily ? {
+    /(?i:RedHat|Amazon)/ => 'nrpe',
+    default              => 'nagios-nrpe-server',
+  }
+
+  $nrpe_service = $::osfamily ? {
+    /(?i:RedHat|Amazon)/ => 'nrpe',
+    default              => 'nagios-nrpe-server',
+  }
+
+  $plugins_package = $::osfamily ? {
+    /(?i:RedHat|Amazon)/ => 'nagios-plugins-all',
+    default              => 'nagios-plugins',
+  }
+
+  package { [$nrpe_package, $plugins_package]:
     ensure => installed,
   }
 
@@ -18,8 +33,8 @@ class nrpe (
     group   => 'root',
     mode    => '0644',
     content => template('nrpe/nrpe.cfg.erb'),
-    notify  => Service['nagios-nrpe-server'],
-    require => Package['nagios-nrpe-server'],
+    notify  => Service[$nrpe_service],
+    require => Package[$nrpe_package],
   }
 
   if $is_honeypot {
@@ -33,10 +48,10 @@ class nrpe (
     }
   }
 
-  service { 'nagios-nrpe-server':
+  service { $nrpe_service:
     ensure     => running,
     enable     => true,
     hasrestart => true,
-    require    => Package['nagios-nrpe-server'],
+    require    => Package[$nrpe_package],
   }
 }

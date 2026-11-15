@@ -1,16 +1,21 @@
 # ==============================================================================
-# HoneyTrap - Single-Server EC2 Deployment
+# HoneyTrap - Single-Server EC2 Deployment (Amazon Linux 2023)
 # Hosts HoneyTrap SSH Honeypot, Flask Dashboard, Nagios Core, Ansible & Puppet
 # ==============================================================================
 
-# Query latest official Ubuntu 22.04 LTS AMI
-data "aws_ami" "ubuntu" {
+# Query latest official Amazon Linux 2023 AMI
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["137112412989"] # Official Amazon AWS Account ID
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
   }
 
   filter {
@@ -21,7 +26,7 @@ data "aws_ami" "ubuntu" {
 
 # Single HoneyTrap All-in-One EC2 Instance (100% Free Tier Eligible)
 resource "aws_instance" "honeytrap_server" {
-  ami                  = data.aws_ami.ubuntu.id
+  ami                  = data.aws_ami.amazon_linux_2023.id
   instance_type        = var.instance_type
   subnet_id            = aws_subnet.honeytrap_subnet.id
   key_name             = var.key_name
@@ -44,5 +49,6 @@ resource "aws_instance" "honeytrap_server" {
   tags = {
     Name = "HoneyTrap-Server"
     Role = "Honeypot-Dashboard-NagiosCore"
+    OS   = "Amazon-Linux-2023"
   }
 }

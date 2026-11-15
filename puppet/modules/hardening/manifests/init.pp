@@ -11,29 +11,35 @@ class hardening (
   Boolean $enable_auditd     = true,
 ) {
 
+  # Resolve service name by OS family (sshd on Amazon/RedHat, ssh on Debian/Ubuntu)
+  $ssh_service = $::osfamily ? {
+    /(?i:RedHat|Amazon)/ => 'sshd',
+    default              => 'ssh',
+  }
+
   # 1. SSH Hardening
   file_line { 'sshd_config_port':
     path   => '/etc/ssh/sshd_config',
     line   => "Port ${ssh_port}",
     match  => '^#?Port\s+',
-    notify => Service['ssh'],
+    notify => Service[$ssh_service],
   }
 
   file_line { 'sshd_config_root_login':
     path   => '/etc/ssh/sshd_config',
     line   => "PermitRootLogin ${permit_root_login}",
     match  => '^#?PermitRootLogin\s+',
-    notify => Service['ssh'],
+    notify => Service[$ssh_service],
   }
 
   file_line { 'sshd_config_password_auth':
     path   => '/etc/ssh/sshd_config',
     line   => "PasswordAuthentication ${password_auth}",
     match  => '^#?PasswordAuthentication\s+',
-    notify => Service['ssh'],
+    notify => Service[$ssh_service],
   }
 
-  service { 'ssh':
+  service { $ssh_service:
     ensure     => running,
     enable     => true,
     hasrestart => true,

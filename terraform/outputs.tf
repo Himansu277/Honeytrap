@@ -14,7 +14,7 @@ output "evidence_s3_bucket" {
 
 output "admin_ssh_command" {
   description = "Command to SSH into management shell using relocated port 2222"
-  value       = "ssh -i <your-key.pem> -p ${var.admin_ssh_port} ubuntu@${aws_instance.honeytrap_server.public_ip}"
+  value       = "ssh -i <your-key.pem> -p ${var.admin_ssh_port} ec2-user@${aws_instance.honeytrap_server.public_ip}"
 }
 
 output "honeypot_test_command" {

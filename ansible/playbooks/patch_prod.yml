@@ -2,21 +2,25 @@
 # ==============================================================================
 # HoneyTrap - Playbook 3: patch_prod.yml
 # Production Server Automated Security Patching & Vulnerability Mitigation
+# Compatible with Amazon Linux 2023 (DNF) and Debian/Ubuntu (APT)
 # ==============================================================================
 - name: Apply Security Patches to Protected Production Servers
   hosts: production
   gather_facts: yes
   tasks:
-    - name: Update apt cache repositories
-      ansible.builtin.apt:
+    - name: Update package cache and upgrade security packages (DNF for Amazon Linux / RedHat)
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        security: yes
         update_cache: yes
-        cache_valid_time: 3600
+      when: ansible_os_family in ['RedHat', 'Amazon']
 
-    - name: Upgrade critical security packages
+    - name: Update apt cache and upgrade security packages (APT for Debian / Ubuntu)
       ansible.builtin.apt:
         upgrade: dist
-        default_release: "{{ ansible_distribution_release }}"
-      register: upgrade_output
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
 
     - name: Check if server reboot is required following kernel or library updates
       ansible.builtin.stat:
