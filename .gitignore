@@ -41,3 +41,17 @@ nagios_cowrie_pointer.dat
 *.bak
 *.zip
 HoneyTrap-Project-Full.zip
+
+# Terraform sensitive files
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+terraform.tfvars.json
+.terraform/
+
+# Private keys and environment secrets
+*.pem
+*.key
+.env
+.env.*
+!.env.example

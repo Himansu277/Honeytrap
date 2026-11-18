@@ -52,7 +52,6 @@ dnf install -y \
   python3-pip \
   python3-devel \
   git \
-  curl \
   jq \
   iptables \
   iptables-services \
@@ -286,3 +285,4 @@ echo "=================================================================="
 echo "   HONEYTRAP AL2023 SINGLE-SERVER BOOTSTRAP COMPLETED             "
 echo "   Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')                 "
 echo "=================================================================="
+

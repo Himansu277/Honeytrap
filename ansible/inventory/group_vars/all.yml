@@ -3,7 +3,7 @@
 # ==============================================================================
 
 aws_region: "ap-south-1"
-s3_evidence_bucket: "honeytrap-evidence-store"
+s3_evidence_bucket: "honeytrap-evidence-fd0e2461"
 enable_ebs_snapshots: false
 cowrie_log_dir: "/home/cowrie/cowrie/var/log/cowrie"
 cowrie_tty_dir: "/home/cowrie/cowrie/var/lib/cowrie/tty"
